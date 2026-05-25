@@ -16,11 +16,30 @@
             align-items: center;
         }
 
-        h1 {
-            align-self: flex-start;
-            font-size: 24px;
-            font-weight: 500;
-            margin-bottom: 40px;
+        h1 { font-size: 24px; font-weight: 500; margin-bottom: 20px; }
+
+        /* Estilos dos botões de modo */
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .mode-btn {
+            padding: 10px 15px;
+            border: 1px solid #4a4a5a;
+            background-color: #2a2a35;
+            color: #aaa;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background-color: #64b5f6;
+            color: #000;
+            border-color: #64b5f6;
+            font-weight: bold;
         }
 
         .pitch-pipe-container {
@@ -66,16 +85,9 @@
             transition: all 0.2s ease;
         }
 
-        .note-btn:hover {
-            background-color: #3f3f4e;
-            transform: scale(1.1);
-        }
+        .note-btn:hover { background-color: #3f3f4e; transform: scale(1.1); }
+        .note-btn:active { background-color: #555566; }
 
-        .note-btn:active {
-            background-color: #555566;
-        }
-
-        /* Posicionamento em círculo */
         .btn-c { top: 0; left: 120px; }
         .btn-d { top: 35px; right: 25px; }
         .btn-e { top: 120px; right: 0; }
@@ -92,50 +104,32 @@
             padding: 20px 0;
             display: flex;
             justify-content: space-around;
-            margin-bottom: 30px;
         }
 
-        .info-item {
-            text-align: center;
-        }
-
-        .info-label {
-            color: #64b5f6;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .info-value {
-            font-size: 16px;
-            font-family: monospace;
-        }
-
-        .text-section {
-            max-width: 600px;
-            line-height: 1.6;
-            color: #dddddd;
-        }
-
-        .text-section h3 {
-            margin-top: 0;
-            color: #ffffff;
-            font-size: 18px;
-        }
+        .info-item { text-align: center; }
+        .info-label { color: #64b5f6; font-size: 14px; margin-bottom: 10px; }
+        .info-value { font-size: 16px; font-family: monospace; }
     </style>
 </head>
 <body>
 
     <h1>Interactive Pitch Pipe</h1>
 
+    <div class="mode-selector">
+        <button class="mode-btn active" onclick="setMode('one-shot', this)">One-shot</button>
+        <button class="mode-btn" onclick="setMode('continuous', this)">Continuous</button>
+        <button class="mode-btn" onclick="setMode('repetitive', this)">Repetitive</button>
+    </div>
+
     <div class="pitch-pipe-container">
         <div class="center-circle" id="center-display">Select a Note</div>
-        <div class="note-btn btn-c" onclick="playAndDisplay('C', 261.63)">C</div>
-        <div class="note-btn btn-d" onclick="playAndDisplay('D', 293.66)">D</div>
-        <div class="note-btn btn-e" onclick="playAndDisplay('E', 329.63)">E</div>
-        <div class="note-btn btn-f" onclick="playAndDisplay('F', 349.23)">F</div>
-        <div class="note-btn btn-g" onclick="playAndDisplay('G', 392.00)">G</div>
-        <div class="note-btn btn-a" onclick="playAndDisplay('A', 440.00)">A</div>
-        <div class="note-btn btn-b" onclick="playAndDisplay('B', 493.88)">B</div>
+        <div class="note-btn btn-c" onclick="playNote('C', 261.63)">C</div>
+        <div class="note-btn btn-d" onclick="playNote('D', 293.66)">D</div>
+        <div class="note-btn btn-e" onclick="playNote('E', 329.63)">E</div>
+        <div class="note-btn btn-f" onclick="playNote('F', 349.23)">F</div>
+        <div class="note-btn btn-g" onclick="playNote('G', 392.00)">G</div>
+        <div class="note-btn btn-a" onclick="playNote('A', 440.00)">A</div>
+        <div class="note-btn btn-b" onclick="playNote('B', 493.88)">B</div>
     </div>
 
     <div class="info-panel">
@@ -149,41 +143,74 @@
         </div>
     </div>
 
-    <div class="text-section">
-        <h3>Por que o Humming funciona tanto?</h3>
-        <p>Começar pelo <em>humming</em> (boca chiusa) é perfeito porque ele tira a pressão das pregas vocais e foca a ressonância nos ossos do seu rosto (a "máscara"). Quando você sente aquela vibração ou "cosquinha" nos lábios, significa que a voz está bem posicionada. Isso te ajuda a memorizar a sensação física da nota certa, e não apenas o som.</p>
-    </div>
-
     <script>
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let currentMode = 'one-shot';
+        let activeOscillator = null;
+        let activeInterval = null;
 
-        function playAndDisplay(note, freq) {
-            // Atualiza a interface
-            document.getElementById('center-display').innerText = note;
-            document.getElementById('center-display').style.fontSize = '36px';
-            document.getElementById('center-display').style.fontWeight = 'bold';
-            document.getElementById('center-display').style.color = '#ffffff';
+        function setMode(mode, btnElement) {
+            // Limpa tudo ao trocar de modo
+            stopAllAudio();
             
+            // Gerencia UI dos botões
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            currentMode = mode;
+        }
+
+        function stopAllAudio() {
+            if (activeOscillator) {
+                activeOscillator.stop();
+                activeOscillator.disconnect();
+                activeOscillator = null;
+            }
+            if (activeInterval) {
+                clearInterval(activeInterval);
+                activeInterval = null;
+            }
+        }
+
+        function playNote(note, freq) {
+            stopAllAudio();
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
+            // Atualiza UI
+            document.getElementById('center-display').innerText = note;
             document.getElementById('note-val').innerText = note;
             document.getElementById('freq-val').innerText = freq + ' Hz';
 
-            // Toca o som
-            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+            if (currentMode === 'one-shot') {
+                triggerTone(freq, 1.5);
+            } else if (currentMode === 'continuous') {
+                triggerTone(freq, null); // null = duração infinita até novo comando
+            } else if (currentMode === 'repetitive') {
+                triggerTone(freq, 0.5); // Toca uma vez imediata
+                activeInterval = setInterval(() => {
+                    triggerTone(freq, 0.5);
+                }, 1000);
+            }
+        }
 
+        function triggerTone(freq, duration) {
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
 
             oscillator.type = 'sine';
             oscillator.frequency.value = freq;
-
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
 
             oscillator.start();
-            gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
             
-            oscillator.stop(audioCtx.currentTime + 1.5);
+            if (duration) {
+                gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                oscillator.stop(audioCtx.currentTime + duration);
+            } else {
+                // Modo contínuo: armazena a referência para parar depois
+                activeOscillator = oscillator;
+            }
         }
     </script>
 </body>
