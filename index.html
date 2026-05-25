@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Pitch Pipe</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            align-self: flex-start;
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 40px;
+        }
+
+        .pitch-pipe-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin-bottom: 40px;
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #2a2a35;
+            border: 2px solid #4a4a5a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 14px;
+            color: #aaaaaa;
+            z-index: 10;
+        }
+
+        .note-btn {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #2a2a35;
+            border: 2px solid #888;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .note-btn:hover {
+            background-color: #3f3f4e;
+            transform: scale(1.1);
+        }
+
+        .note-btn:active {
+            background-color: #555566;
+        }
+
+        /* Posicionamento em círculo */
+        .btn-c { top: 0; left: 120px; }
+        .btn-d { top: 35px; right: 25px; }
+        .btn-e { top: 120px; right: 0; }
+        .btn-f { bottom: 0; right: 45px; }
+        .btn-g { bottom: 0; left: 45px; }
+        .btn-a { top: 120px; left: 0; }
+        .btn-b { top: 35px; left: 25px; }
+
+        .info-panel {
+            width: 100%;
+            max-width: 600px;
+            border-top: 1px solid #333;
+            border-bottom: 1px solid #333;
+            padding: 20px 0;
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            color: #64b5f6;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-family: monospace;
+        }
+
+        .text-section {
+            max-width: 600px;
+            line-height: 1.6;
+            color: #dddddd;
+        }
+
+        .text-section h3 {
+            margin-top: 0;
+            color: #ffffff;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive Pitch Pipe</h1>
+
+    <div class="pitch-pipe-container">
+        <div class="center-circle" id="center-display">Select a Note</div>
+        <div class="note-btn btn-c" onclick="playAndDisplay('C', 261.63)">C</div>
+        <div class="note-btn btn-d" onclick="playAndDisplay('D', 293.66)">D</div>
+        <div class="note-btn btn-e" onclick="playAndDisplay('E', 329.63)">E</div>
+        <div class="note-btn btn-f" onclick="playAndDisplay('F', 349.23)">F</div>
+        <div class="note-btn btn-g" onclick="playAndDisplay('G', 392.00)">G</div>
+        <div class="note-btn btn-a" onclick="playAndDisplay('A', 440.00)">A</div>
+        <div class="note-btn btn-b" onclick="playAndDisplay('B', 493.88)">B</div>
+    </div>
+
+    <div class="info-panel">
+        <div class="info-item">
+            <div class="info-label">Selected Note</div>
+            <div class="info-value" id="note-val">None</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Frequency</div>
+            <div class="info-value" id="freq-val">0 Hz</div>
+        </div>
+    </div>
+
+    <div class="text-section">
+        <h3>Por que o Humming funciona tanto?</h3>
+        <p>Começar pelo <em>humming</em> (boca chiusa) é perfeito porque ele tira a pressão das pregas vocais e foca a ressonância nos ossos do seu rosto (a "máscara"). Quando você sente aquela vibração ou "cosquinha" nos lábios, significa que a voz está bem posicionada. Isso te ajuda a memorizar a sensação física da nota certa, e não apenas o som.</p>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playAndDisplay(note, freq) {
+            // Atualiza a interface
+            document.getElementById('center-display').innerText = note;
+            document.getElementById('center-display').style.fontSize = '36px';
+            document.getElementById('center-display').style.fontWeight = 'bold';
+            document.getElementById('center-display').style.color = '#ffffff';
+            
+            document.getElementById('note-val').innerText = note;
+            document.getElementById('freq-val').innerText = freq + ' Hz';
+
+            // Toca o som
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.value = freq;
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
+            
+            oscillator.stop(audioCtx.currentTime + 1.5);
+        }
+    </script>
+</body>
+</html>
