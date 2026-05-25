@@ -31,26 +31,31 @@
             text-align: center;
         }
 
-        /* Títulos mantidos no tamanho original (18px) */
+        .no-border { border: none; }
+
         .box-title { font-size: 18px; color: #ffffff; margin-bottom: 5px; font-weight: bold; }
-        
-        /* Subtítulos aumentados em 10% (12px -> 13.2px) */
         .box-subtitle { font-size: 13.2px; color: #888; margin-bottom: 15px; }
 
-        .nav-wrapper { display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px; }
         .mode-selector { display: flex; gap: 10px; justify-content: center; width: 100%; }
 
-        /* Breadcrumb aumentado em 10% (13px -> 14.3px) */
+        /* Container específico para alinhar Breadcrumb e Setas */
+        .transposition-container { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+
+        /* Breadcrumb com texto aumentado 10% (14.3px -> 15.7px) */
         .breadcrumb { display: flex; gap: 5px; justify-content: center; }
         .crumb { 
             padding: 5px 0; border: 1px solid #4a4a5a; border-radius: 4px; color: #666; 
-            font-size: 14.3px; width: 44px; text-align: center; cursor: pointer; transition: all 0.3s;
+            font-size: 15.7px; width: 48px; text-align: center; cursor: pointer; transition: all 0.3s;
         }
         .crumb:hover { border-color: #888; color: #fff; }
         .crumb.active { border-color: #64b5f6; color: #64b5f6; background: rgba(100, 181, 246, 0.1); font-weight: bold; }
 
-        /* Botões aumentados em 10% (aprox. 15px -> 16.5px) */
-        .mode-btn, .nav-btn {
+        /* Setas na largura da lista */
+        .nav-row { display: flex; gap: 5px; width: 100%; }
+        .nav-btn-wide { flex: 1; padding: 10px; border: 1px solid #4a4a5a; background-color: #2a2a35; color: #aaa; cursor: pointer; border-radius: 5px; font-size: 16.5px; }
+        .nav-btn-wide:hover { background-color: #3f3f4e; color: white; }
+
+        .mode-btn {
             padding: 10px 15px;
             border: 1px solid #4a4a5a;
             background-color: #2a2a35;
@@ -60,11 +65,9 @@
             font-size: 16.5px;
         }
         .mode-btn.active { background-color: #64b5f6; color: #000; border-color: #64b5f6; font-weight: bold; }
-        .nav-btn:hover { background-color: #3f3f4e; color: white; }
 
         .pitch-pipe-container { position: relative; width: 300px; height: 300px; margin-bottom: 40px; }
         
-        /* Círculo Central MANTIDO (tamanho original) */
         .center-circle {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 120px; height: 120px; border-radius: 50%; background-color: #2a2a35;
@@ -76,9 +79,8 @@
         #display-pt { font-size: 16px; color: #aaaaaa; margin-top: 5px; }
         #display-freq { font-size: 12px; color: #64b5f6; margin-top: 5px; font-family: monospace; }
 
-        /* Botões de notas aumentados em 10% (20px -> 22px) */
         .note-btn {
-            position: absolute; top: 50%; left: 50%; margin: -30px; width: 66px; height: 66px;
+            position: absolute; top: 50%; left: 50%; margin: -33px; width: 66px; height: 66px;
             border-radius: 50%; background-color: #2a2a35; border: 2px solid #888; color: white;
             font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center;
             justify-content: center; transition: all 0.2s ease;
@@ -86,7 +88,6 @@
         .note-btn:hover { background-color: #3f3f4e; }
         .note-btn.playing { border-color: #64b5f6; background-color: #1e3a5a; }
 
-        /* Ajuste de posição para compensar o tamanho do botão (66px) */
         .btn-0 { transform: rotate(0deg) translateY(-110px) rotate(0deg); } 
         .btn-1 { transform: rotate(51.4deg) translateY(-110px) rotate(-51.4deg); }
         .btn-2 { transform: rotate(102.8deg) translateY(-110px) rotate(-102.8deg); }
@@ -128,15 +129,16 @@
     <div class="control-box">
         <div class="box-title">Transpor escalas</div>
         <div class="box-subtitle" id="scale-subtitle">Escala de C Maior (Dó Maior)</div>
-        <div class="nav-wrapper">
-            <button class="nav-btn" onclick="adjustSelection(-1)">⬅</button>
+        <div class="transposition-container">
             <div class="breadcrumb" id="breadcrumb"></div>
-            <button class="nav-btn" onclick="adjustSelection(1)">➡</button>
+            <div class="nav-row">
+                <button class="nav-btn-wide" onclick="adjustSelection(-1)">⬅</button>
+                <button class="nav-btn-wide" onclick="adjustSelection(1)">➡</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // ... (Script permanece o mesmo)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let currentMode = 'one-shot';
         let activeOscillator = null;
