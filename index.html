@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Pitch Pipe</title>
+    <title>Gerador de Notas</title>
     <style>
         body {
             background-color: #121212;
@@ -16,202 +16,254 @@
             align-items: center;
         }
 
-        h1 { font-size: 24px; font-weight: 500; margin-bottom: 20px; }
+        h1 { font-size: 26.4px; font-weight: 500; margin-bottom: 20px; }
 
-        /* Estilos dos botões de modo */
-        .mode-selector {
+        .control-box {
+            border: 1px solid #4a4a5a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
         }
 
-        .mode-btn {
+        /* Títulos mantidos no tamanho original (18px) */
+        .box-title { font-size: 18px; color: #ffffff; margin-bottom: 5px; font-weight: bold; }
+        
+        /* Subtítulos aumentados em 10% (12px -> 13.2px) */
+        .box-subtitle { font-size: 13.2px; color: #888; margin-bottom: 15px; }
+
+        .nav-wrapper { display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px; }
+        .mode-selector { display: flex; gap: 10px; justify-content: center; width: 100%; }
+
+        /* Breadcrumb aumentado em 10% (13px -> 14.3px) */
+        .breadcrumb { display: flex; gap: 5px; justify-content: center; }
+        .crumb { 
+            padding: 5px 0; border: 1px solid #4a4a5a; border-radius: 4px; color: #666; 
+            font-size: 14.3px; width: 44px; text-align: center; cursor: pointer; transition: all 0.3s;
+        }
+        .crumb:hover { border-color: #888; color: #fff; }
+        .crumb.active { border-color: #64b5f6; color: #64b5f6; background: rgba(100, 181, 246, 0.1); font-weight: bold; }
+
+        /* Botões aumentados em 10% (aprox. 15px -> 16.5px) */
+        .mode-btn, .nav-btn {
             padding: 10px 15px;
             border: 1px solid #4a4a5a;
             background-color: #2a2a35;
             color: #aaa;
             cursor: pointer;
             border-radius: 5px;
-            transition: all 0.2s;
+            font-size: 16.5px;
         }
+        .mode-btn.active { background-color: #64b5f6; color: #000; border-color: #64b5f6; font-weight: bold; }
+        .nav-btn:hover { background-color: #3f3f4e; color: white; }
 
-        .mode-btn.active {
-            background-color: #64b5f6;
-            color: #000;
-            border-color: #64b5f6;
-            font-weight: bold;
-        }
-
-        .pitch-pipe-container {
-            position: relative;
-            width: 300px;
-            height: 300px;
-            margin-bottom: 40px;
-        }
-
+        .pitch-pipe-container { position: relative; width: 300px; height: 300px; margin-bottom: 40px; }
+        
+        /* Círculo Central MANTIDO (tamanho original) */
         .center-circle {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background-color: #2a2a35;
-            border: 2px solid #4a4a5a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            font-size: 14px;
-            color: #aaaaaa;
-            z-index: 10;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 120px; height: 120px; border-radius: 50%; background-color: #2a2a35;
+            border: 2px solid #4a4a5a; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 10;
         }
 
+        #display-note { font-size: 40px; font-weight: 900; line-height: 1; }
+        #display-pt { font-size: 16px; color: #aaaaaa; margin-top: 5px; }
+        #display-freq { font-size: 12px; color: #64b5f6; margin-top: 5px; font-family: monospace; }
+
+        /* Botões de notas aumentados em 10% (20px -> 22px) */
         .note-btn {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: #2a2a35;
-            border: 2px solid #888;
-            color: white;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
+            position: absolute; top: 50%; left: 50%; margin: -30px; width: 66px; height: 66px;
+            border-radius: 50%; background-color: #2a2a35; border: 2px solid #888; color: white;
+            font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; transition: all 0.2s ease;
         }
+        .note-btn:hover { background-color: #3f3f4e; }
+        .note-btn.playing { border-color: #64b5f6; background-color: #1e3a5a; }
 
-        .note-btn:hover { background-color: #3f3f4e; transform: scale(1.1); }
-        .note-btn:active { background-color: #555566; }
-
-        .btn-c { top: 0; left: 120px; }
-        .btn-d { top: 35px; right: 25px; }
-        .btn-e { top: 120px; right: 0; }
-        .btn-f { bottom: 0; right: 45px; }
-        .btn-g { bottom: 0; left: 45px; }
-        .btn-a { top: 120px; left: 0; }
-        .btn-b { top: 35px; left: 25px; }
-
-        .info-panel {
-            width: 100%;
-            max-width: 600px;
-            border-top: 1px solid #333;
-            border-bottom: 1px solid #333;
-            padding: 20px 0;
-            display: flex;
-            justify-content: space-around;
-        }
-
-        .info-item { text-align: center; }
-        .info-label { color: #64b5f6; font-size: 14px; margin-bottom: 10px; }
-        .info-value { font-size: 16px; font-family: monospace; }
+        /* Ajuste de posição para compensar o tamanho do botão (66px) */
+        .btn-0 { transform: rotate(0deg) translateY(-110px) rotate(0deg); } 
+        .btn-1 { transform: rotate(51.4deg) translateY(-110px) rotate(-51.4deg); }
+        .btn-2 { transform: rotate(102.8deg) translateY(-110px) rotate(-102.8deg); }
+        .btn-3 { transform: rotate(154.2deg) translateY(-110px) rotate(-154.2deg); }
+        .btn-4 { transform: rotate(205.6deg) translateY(-110px) rotate(-205.6deg); }
+        .btn-5 { transform: rotate(257.0deg) translateY(-110px) rotate(-257.0deg); }
+        .btn-6 { transform: rotate(308.4deg) translateY(-110px) rotate(-308.4deg); }
     </style>
 </head>
 <body>
 
-    <h1>Interactive Pitch Pipe</h1>
-
-    <div class="mode-selector">
-        <button class="mode-btn active" onclick="setMode('one-shot', this)">One-shot</button>
-        <button class="mode-btn" onclick="setMode('continuous', this)">Continuous</button>
-        <button class="mode-btn" onclick="setMode('repetitive', this)">Repetitive</button>
-    </div>
+    <h1>Gerador de Notas</h1>
 
     <div class="pitch-pipe-container">
-        <div class="center-circle" id="center-display">Select a Note</div>
-        <div class="note-btn btn-c" onclick="playNote('C', 261.63)">C</div>
-        <div class="note-btn btn-d" onclick="playNote('D', 293.66)">D</div>
-        <div class="note-btn btn-e" onclick="playNote('E', 329.63)">E</div>
-        <div class="note-btn btn-f" onclick="playNote('F', 349.23)">F</div>
-        <div class="note-btn btn-g" onclick="playNote('G', 392.00)">G</div>
-        <div class="note-btn btn-a" onclick="playNote('A', 440.00)">A</div>
-        <div class="note-btn btn-b" onclick="playNote('B', 493.88)">B</div>
+        <div class="center-circle">
+            <span id="display-note">C</span>
+            <span id="display-pt">Dó</span>
+            <span id="display-freq">261.63 Hz</span>
+        </div>
+        <div class="note-btn btn-0" id="btn-0" onclick="playCurrentNote(0)">C</div>
+        <div class="note-btn btn-1" id="btn-1" onclick="playCurrentNote(1)">D</div>
+        <div class="note-btn btn-2" id="btn-2" onclick="playCurrentNote(2)">E</div>
+        <div class="note-btn btn-3" id="btn-3" onclick="playCurrentNote(3)">F</div>
+        <div class="note-btn btn-4" id="btn-4" onclick="playCurrentNote(4)">G</div>
+        <div class="note-btn btn-5" id="btn-5" onclick="playCurrentNote(5)">A</div>
+        <div class="note-btn btn-6" id="btn-6" onclick="playCurrentNote(6)">B</div>
     </div>
 
-    <div class="info-panel">
-        <div class="info-item">
-            <div class="info-label">Selected Note</div>
-            <div class="info-value" id="note-val">None</div>
+    <div class="control-box no-border">
+        <div class="box-title">Modo de reprodução</div>
+        <div class="box-subtitle" id="mode-subtitle">A nota será tocada uma só vez.</div>
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="setMode('one-shot', this)">Única</button>
+            <button class="mode-btn" onclick="setMode('continuous', this)">Contínuo</button>
+            <button class="mode-btn" onclick="setMode('repetitive', this)">Repetitivo</button>
         </div>
-        <div class="info-item">
-            <div class="info-label">Frequency</div>
-            <div class="info-value" id="freq-val">0 Hz</div>
+    </div>
+
+    <div class="control-box">
+        <div class="box-title">Transpor escalas</div>
+        <div class="box-subtitle" id="scale-subtitle">Escala de C Maior (Dó Maior)</div>
+        <div class="nav-wrapper">
+            <button class="nav-btn" onclick="adjustSelection(-1)">⬅</button>
+            <div class="breadcrumb" id="breadcrumb"></div>
+            <button class="nav-btn" onclick="adjustSelection(1)">➡</button>
         </div>
     </div>
 
     <script>
+        // ... (Script permanece o mesmo)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let currentMode = 'one-shot';
         let activeOscillator = null;
         let activeInterval = null;
+        let activeBtn = null;
+
+        const baseNotes = [
+            { name: "C", freq: 261.63, pt: "Dó" },
+            { name: "D", freq: 293.66, pt: "Ré" },
+            { name: "E", freq: 329.63, pt: "Mi" },
+            { name: "F", freq: 349.23, pt: "Fá" },
+            { name: "G", freq: 392.00, pt: "Sol" },
+            { name: "A", freq: 440.00, pt: "Lá" },
+            { name: "B", freq: 493.88, pt: "Si" }
+        ];
+
+        const visibleScalesIndices = [10, 11, 0, 1, 2];
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const ptNames = ["Dó", "Dó#", "Ré", "Ré#", "Mi", "Fá", "Fá#", "Sol", "Sol#", "Lá", "Lá#", "Si"];
+
+        let activeNoteIndex = 0; 
+
+        function updateCircleDisplay(note, pt, freq) {
+            document.getElementById('display-note').innerText = note;
+            document.getElementById('display-pt').innerText = pt;
+            document.getElementById('display-freq').innerText = freq.toFixed(2) + " Hz";
+        }
+
+        function renderBreadcrumb() {
+            const bc = document.getElementById('breadcrumb');
+            bc.innerHTML = '';
+            visibleScalesIndices.forEach(idx => {
+                let div = document.createElement('div');
+                div.className = 'crumb' + (idx === activeNoteIndex ? ' active' : '');
+                div.innerText = noteNames[idx];
+                div.onclick = () => selectNote(idx);
+                bc.appendChild(div);
+            });
+            document.getElementById('scale-subtitle').innerText = "Escala de " + noteNames[activeNoteIndex] + " Maior (" + ptNames[activeNoteIndex] + " Maior)";
+        }
+
+        function selectNote(index) {
+            activeNoteIndex = index;
+            renderBreadcrumb();
+            const freq = baseNotes[0].freq * Math.pow(Math.pow(2, 1/12), activeNoteIndex);
+            updateCircleDisplay(noteNames[activeNoteIndex], ptNames[activeNoteIndex], freq);
+        }
+
+        function adjustSelection(direction) {
+            let currentPos = visibleScalesIndices.indexOf(activeNoteIndex);
+            if (currentPos === -1) currentPos = 2; 
+            let newPos = currentPos + direction;
+            if (newPos >= 0 && newPos < visibleScalesIndices.length) {
+                selectNote(visibleScalesIndices[newPos]);
+            }
+        }
+
+        function getTransposedFreq(index) {
+            return baseNotes[index].freq * Math.pow(Math.pow(2, 1/12), activeNoteIndex);
+        }
+
+        function playCurrentNote(index) {
+            const freq = getTransposedFreq(index);
+            const noteName = baseNotes[index].name;
+            const ptName = baseNotes[index].pt;
+            const btn = document.getElementById('btn-' + index);
+            updateCircleDisplay(noteName, ptName, freq);
+            toggleNote(noteName, freq, btn, ptName);
+        }
 
         function setMode(mode, btnElement) {
-            // Limpa tudo ao trocar de modo
             stopAllAudio();
-            
-            // Gerencia UI dos botões
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
             btnElement.classList.add('active');
             currentMode = mode;
+
+            const modeSubtitle = document.getElementById('mode-subtitle');
+            if (mode === 'one-shot') modeSubtitle.innerText = "A nota será tocada uma só vez.";
+            else if (mode === 'continuous') modeSubtitle.innerText = "A nota será tocada sem parar.";
+            else if (mode === 'repetitive') modeSubtitle.innerText = "A nota será tocada várias vezes.";
         }
 
         function stopAllAudio() {
-            if (activeOscillator) {
-                activeOscillator.stop();
-                activeOscillator.disconnect();
-                activeOscillator = null;
-            }
-            if (activeInterval) {
-                clearInterval(activeInterval);
-                activeInterval = null;
+            if (activeOscillator) { activeOscillator.stop(); activeOscillator.disconnect(); activeOscillator = null; }
+            if (activeInterval) { clearInterval(activeInterval); activeInterval = null; }
+            if (activeBtn) { activeBtn.classList.remove('playing'); activeBtn = null; }
+        }
+
+        function toggleNote(note, freq, btnElement, ptName) {
+            if (activeBtn === btnElement) {
+                stopAllAudio();
+            } else {
+                stopAllAudio();
+                if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
+                activeBtn = btnElement;
+                activeBtn.classList.add('playing');
+                if (currentMode === 'one-shot') {
+                    triggerTone(freq, 1.5, () => { if (activeBtn === btnElement) stopAllAudio(); });
+                } else if (currentMode === 'continuous') {
+                    triggerTone(freq, null, null);
+                } else if (currentMode === 'repetitive') {
+                    triggerTone(freq, 4.0, null);
+                    activeInterval = setInterval(() => { triggerTone(freq, 4.0, null); }, 2000);
+                }
             }
         }
 
-        function playNote(note, freq) {
-            stopAllAudio();
-            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-
-            // Atualiza UI
-            document.getElementById('center-display').innerText = note;
-            document.getElementById('note-val').innerText = note;
-            document.getElementById('freq-val').innerText = freq + ' Hz';
-
-            if (currentMode === 'one-shot') {
-                triggerTone(freq, 1.5);
-            } else if (currentMode === 'continuous') {
-                triggerTone(freq, null); // null = duração infinita até novo comando
-            } else if (currentMode === 'repetitive') {
-                triggerTone(freq, 0.5); // Toca uma vez imediata
-                activeInterval = setInterval(() => {
-                    triggerTone(freq, 0.5);
-                }, 1000);
-            }
-        }
-
-        function triggerTone(freq, duration) {
+        function triggerTone(freq, duration, onComplete) {
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-
             oscillator.type = 'sine';
             oscillator.frequency.value = freq;
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-
             oscillator.start();
-            
             if (duration) {
                 gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
                 oscillator.stop(audioCtx.currentTime + duration);
+                if (onComplete) { setTimeout(onComplete, duration * 1000); }
             } else {
-                // Modo contínuo: armazena a referência para parar depois
                 activeOscillator = oscillator;
             }
         }
+
+        renderBreadcrumb();
     </script>
 </body>
 </html>
