@@ -1,161 +1,362 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Piano Minimalista</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Tom - Night Mode</title>
     <style>
-        body { 
-            background-color: #0f0f0f; 
-            display: flex; 
-            flex-direction: row; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            margin: 0; 
-            font-family: 'Inter', sans-serif; 
-            gap: 40px;
+        :root {
+            --bg-color: #0f111a;
+            --panel-bg: #1a1d2d;
+            --accent-color: #00e6e6;
+            --text-main: #ffffff;
+            --text-muted: #8b92a5;
+            --key-white: #e8e9f0;
+            --key-black: #121212;
         }
-        #keyboard { 
-            display: flex; 
-            padding: 20px; 
-            background: #1a1a1a; 
-            border-radius: 16px; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4); 
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
-        .key { width: 55px; height: 160px; cursor: pointer; border-radius: 0 0 8px 8px; margin: 0 5px; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 10px; font-weight: 500; user-select: none; }
-        .label { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .note-name { font-size: 13px; }
-        .note-freq { font-size: 10px; opacity: 0.7; }
-        .white { background: #e0e0e0; color: #555; z-index: 1; }
-        .black { background: #333; color: #aaa; width: 40px; height: 100px; margin-left: -22px; margin-right: -22px; z-index: 3; border-radius: 0 0 6px 6px; }
-        .playing { background-color: #007AFF !important; color: #fff !important; box-shadow: 0 0 20px #007AFF; }
-        
-        /* Painel de controles na vertical */
-        #controls { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
         }
-        .toggle-wrapper { 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-            color: #888; 
-            font-size: 14px; 
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: space-between;
         }
-        .square-toggle { 
-            width: 40px; height: 40px; 
-            background: #222; border-radius: 8px; 
-            display: flex; align-items: center; justify-content: center; 
-            cursor: pointer; transition: 0.3s; border: 2px solid #333;
-            color: #555; font-weight: bold;
+
+        /* --- TOP SECTION: DISPLAY --- */
+        .display-section {
+            text-align: center;
+            padding: 40px 20px 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        .square-toggle.active { 
-            background: #007AFF; color: #fff; border-color: #007AFF; 
+
+        .note-wrapper {
+            margin-bottom: 5px;
         }
-        .switch-input { display: none; }
+
+        .main-note {
+            font-size: 5.5rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            text-shadow: 0 0 20px rgba(0, 230, 230, 0.4);
+            letter-spacing: -2px;
+        }
+
+        .octave-number {
+            font-size: 3rem;
+            color: var(--text-main);
+            vertical-align: super;
+            text-shadow: none;
+        }
+
+        .note-name {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+        }
+
+        .info-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--panel-bg);
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .info-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .divider {
+            width: 1px;
+            height: 40px;
+            background-color: #2c314a;
+            margin: 0 15px;
+        }
+
+        /* --- MIDDLE SECTION: MIC BUTTON --- */
+        .mic-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        .mic-button {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #161926, #1c1f30);
+            box-shadow: 10px 10px 20px #090a10, -10px -10px 20px #151824;
+            border: 2px solid #2c314a;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.4;
+        }
+
+        .mic-button:active {
+            box-shadow: inset 10px 10px 20px #090a10, inset -10px -10px 20px #151824;
+        }
+
+        .mic-button.listening {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 30px rgba(0, 230, 230, 0.2);
+            color: var(--accent-color);
+        }
+
+        /* --- BOTTOM SECTION: CONTROLS & KEYBOARD --- */
+        .keyboard-section {
+            background-color: var(--panel-bg);
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding-top: 20px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+        }
+
+        .octave-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px 20px;
+        }
+
+        .arrow-btn {
+            background: transparent;
+            border: 1px solid #2c314a;
+            color: var(--text-main);
+            width: 50px;
+            height: 40px;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .arrow-btn:active {
+            background: #2c314a;
+        }
+
+        .current-octave {
+            text-align: center;
+        }
+
+        .octave-val {
+            font-size: 1.8rem;
+            font-weight: bold;
+            display: block;
+            line-height: 1;
+        }
+
+        .octave-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* PIANO CSS TRICK */
+        .piano-wrapper {
+            position: relative;
+            display: flex;
+            width: 100%;
+            height: 160px;
+        }
+
+        .white-key {
+            flex: 1;
+            background: var(--key-white);
+            border: 1px solid #111;
+            border-top: none;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            box-shadow: inset 0 -4px 8px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+
+        .white-key:active, .white-key.active {
+            background: #cdd0da;
+        }
+
+        .black-key {
+            position: absolute;
+            width: 9%; /* Proporção para caber entre as teclas brancas */
+            height: 60%;
+            background: var(--key-black);
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            box-shadow: inset 0 -5px 5px rgba(255,255,255,0.1), 3px 3px 6px rgba(0,0,0,0.4);
+            z-index: 2;
+            top: 0;
+            border: 1px solid #000;
+        }
+
+        .black-key:active, .black-key.active {
+            background: #222;
+        }
+
+        /* Posições exatas das teclas pretas para uma oitava inteira (C a B) */
+        /* 7 teclas brancas = ~14.28% cada. Centrar a tecla preta requer matemática. */
+        .bk-1 { left: 9.78%; }  /* C# */
+        .bk-2 { left: 24.07%; } /* D# */
+        .bk-3 { left: 52.64%; } /* F# */
+        .bk-4 { left: 66.92%; } /* G# */
+        .bk-5 { left: 81.21%; } /* A# */
+
     </style>
 </head>
 <body>
 
-<div id="keyboard"></div>
-
-<div id="controls">
-    <div class="toggle-wrapper">
-        <input type="checkbox" id="toggle-once" class="switch-input" onclick="setMode('once')">
-        <label for="toggle-once" id="label-once" class="square-toggle">1x</label>
-        Uma vez
-    </div>
-    <div class="toggle-wrapper">
-        <input type="checkbox" id="toggle-infinite" class="switch-input" onclick="setMode('infinite')">
-        <label for="toggle-infinite" id="label-infinite" class="square-toggle">∞</label>
-        Indefinido
-    </div>
-</div>
-
-<script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let mode = 'once';
-    let currentNote = null; 
-
-    function updateToggles() {
-        document.getElementById('toggle-once').checked = (mode === 'once');
-        document.getElementById('toggle-infinite').checked = (mode === 'infinite');
+    <div class="app-container">
         
-        document.getElementById('label-once').classList.toggle('active', mode === 'once');
-        document.getElementById('label-infinite').classList.toggle('active', mode === 'infinite');
-    }
+        <div class="display-section">
+            <div class="note-wrapper">
+                <span class="main-note">C#<span class="octave-number" id="displayOctave">2</span></span>
+            </div>
+            <h2 class="note-name">Dó Sustenido</h2>
+            
+            <div class="info-grid">
+                <div class="info-block">
+                    <span class="info-label">Frequência</span>
+                    <span class="info-value">Segunda Oitava</span>
+                </div>
+                <div class="divider"></div>
+                <div class="info-block">
+                    <span class="info-label">Frequência</span>
+                    <span class="info-value">69.3 Hz</span>
+                </div>
+            </div>
+        </div>
 
-    function setMode(m) {
-        stopAll();
-        mode = (mode === m) ? null : m;
-        if (!mode) mode = 'once';
-        updateToggles();
-    }
+        <div class="mic-section">
+            <button class="mic-button" id="micBtn">
+                <span>Iniciar detecção</span>
+                <span>de tom</span>
+            </button>
+        </div>
 
-    function stopAll() {
-        if (currentNote) {
-            currentNote.osc.stop();
-            const el = document.getElementById('key-' + currentNote.name);
-            if (el) el.classList.remove('playing');
-            currentNote = null;
+        <div class="keyboard-section">
+            <div class="octave-controls">
+                <button class="arrow-btn" id="prevBtn">&#8592;</button>
+                <div class="current-octave">
+                    <span class="octave-val" id="controlOctave">2</span>
+                    <span class="octave-label">Oitava</span>
+                </div>
+                <button class="arrow-btn" id="nextBtn">&#8594;</button>
+            </div>
+
+            <div class="piano-wrapper">
+                <div class="white-key"></div>
+                <div class="white-key"></div>
+                <div class="white-key"></div>
+                <div class="white-key"></div>
+                <div class="white-key"></div>
+                <div class="white-key"></div>
+                <div class="white-key"></div>
+
+                <div class="black-key bk-1 active"></div> 
+                <div class="black-key bk-2"></div>
+                <div class="black-key bk-3"></div>
+                <div class="black-key bk-4"></div>
+                <div class="black-key bk-5"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Lógica de Oitavas
+        let currentOctave = 2;
+        const minOctave = 2;
+        const maxOctave = 5;
+
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const controlOctaveDisplay = document.getElementById('controlOctave');
+        const displayOctaveDisplay = document.getElementById('displayOctave');
+
+        function updateOctave() {
+            controlOctaveDisplay.innerText = currentOctave;
+            displayOctaveDisplay.innerText = currentOctave;
         }
-    }
 
-    function playNote(freq, noteName) {
-        if (!mode) { mode = 'once'; updateToggles(); }
-        
-        if (currentNote && currentNote.name === noteName) {
-            stopAll();
-            return;
-        }
+        prevBtn.addEventListener('click', () => {
+            if (currentOctave > minOctave) {
+                currentOctave--;
+                updateOctave();
+            }
+        });
 
-        stopAll();
+        nextBtn.addEventListener('click', () => {
+            if (currentOctave < maxOctave) {
+                currentOctave++;
+                updateOctave();
+            }
+        });
 
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start();
+        // Lógica visual do Botão de Microfone
+        const micBtn = document.getElementById('micBtn');
+        let isListening = false;
 
-        currentNote = { osc, gain, name: noteName };
-        document.getElementById('key-' + noteName).classList.add('playing');
-
-        if (mode === 'once') {
-            setTimeout(() => {
-                if (currentNote && currentNote.name === noteName) stopAll();
-            }, 1000);
-        }
-    }
-
-    const notes = [
-        { note: 'C2', freq: 65.41, type: 'white' }, { note: 'C#2', freq: 69.30, type: 'black' },
-        { note: 'D2', freq: 73.42, type: 'white' }, { note: 'D#2', freq: 77.78, type: 'black' },
-        { note: 'E2', freq: 82.41, type: 'white' }, { note: 'F2', freq: 87.31, type: 'white' },
-        { note: 'F#2', freq: 92.50, type: 'black' }, { note: 'G2', freq: 98.00, type: 'white' },
-        { note: 'G#2', freq: 103.83, type: 'black' }, { note: 'A2', freq: 110.00, type: 'white' },
-        { note: 'A#2', freq: 116.54, type: 'black' }, { note: 'B2', freq: 123.47, type: 'white' },
-        { note: 'C3', freq: 130.81, type: 'white' }, { note: 'C#3', freq: 138.59, type: 'black' },
-        { note: 'D3', freq: 146.83, type: 'white' }, { note: 'D#3', freq: 155.56, type: 'black' },
-        { note: 'E3', freq: 164.81, type: 'white' }, { note: 'F3', freq: 174.61, type: 'white' },
-        { note: 'F#3', freq: 185.00, type: 'black' }, { note: 'G3', freq: 196.00, type: 'white' },
-        { note: 'G#3', freq: 207.65, type: 'black' }, { note: 'A3', freq: 220.00, type: 'white' },
-        { note: 'A#3', freq: 233.08, type: 'black' }, { note: 'B3', freq: 246.94, type: 'white' }
-    ];
-
-    const keyboard = document.getElementById('keyboard');
-    notes.forEach(n => {
-        const key = document.createElement('div');
-        key.id = 'key-' + n.note;
-        key.className = `key ${n.type}`;
-        key.innerHTML = `<div class="label"><span class="note-name">${n.note.replace('#', '♯')}</span><span class="note-freq">${n.freq}</span></div>`;
-        key.onmousedown = () => playNote(n.freq, n.note);
-        keyboard.appendChild(key);
-    });
-    
-    updateToggles();
-</script>
+        micBtn.addEventListener('click', () => {
+            isListening = !isListening;
+            if (isListening) {
+                micBtn.classList.add('listening');
+                micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; margin-top: 5px;">Aguardando nota</span>`;
+            } else {
+                micBtn.classList.remove('listening');
+                micBtn.innerHTML = `<span>Iniciar detecção</span><span>de tom</span>`;
+            }
+        });
+    </script>
 </body>
 </html>
