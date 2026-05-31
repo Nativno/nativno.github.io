@@ -593,4 +593,2384 @@
         renderKeyboard();
     </script>
 </body>
+</html><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Tom - Minimal Premium</title>
+    <style>
+        :root {
+            --bg-color: #0f1011;
+            --card-bg: #1a1b1e;
+            --card-border: #26282c;
+            --accent-color: #0073ff;
+            --accent-glow: rgba(0, 115, 255, 0.2);
+            
+            --text-main: #ffffff;
+            --text-muted: #848995;
+            
+            --key-white: #e3e4e8;
+            --key-black: #2d2f35;
+            --key-black-active: #1e1f22;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            padding: 15px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 460px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 820px;
+            justify-content: space-between;
+        }
+
+        /* --- SEÇÃO SUPERIOR (ELEMENTOS SOLTOS SEM CAIXA) --- */
+        .display-section {
+            padding: 10px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .main-note {
+            font-size: 5.5rem;
+            font-weight: 800;
+            color: #ffffff; 
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        .octave-number {
+            font-size: 5.5rem; 
+            color: #ffffff;
+        }
+
+        .note-name {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            font-weight: 500;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Grade de informações limpa (sem caixa/fundo escuro interno) */
+        .info-grid {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .info-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .divider {
+            width: 1px;
+            height: 35px;
+            background-color: var(--card-border);
+            margin: 0 15px;
+        }
+
+        /* --- SEÇÃO DO BOTÃO CENTRAL E WAVEFORM --- */
+        .mic-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .waveform-container {
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .wave {
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-color);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .waveform-container.active .wave {
+            animation: pulseWave 2.4s infinite linear;
+        }
+
+        .waveform-container.active .wave:nth-child(1) { animation-delay: 0.0s; }
+        .waveform-container.active .wave:nth-child(2) { animation-delay: 0.8s; }
+        .waveform-container.active .wave:nth-child(3) { animation-delay: 1.6s; }
+
+        @keyframes pulseWave {
+            0% {
+                width: 170px;
+                height: 170px;
+                opacity: 0.4;
+            }
+            100% {
+                width: 320px;
+                height: 320px;
+                opacity: 0;
+            }
+        }
+
+        .circular-mic-btn {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #1c1d22, #141517);
+            border: 3px solid var(--card-border);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            line-height: 1.4;
+            box-shadow: 10px 10px 25px #070809, -10px -10px 25px #212429;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 5;
+        }
+
+        .circular-mic-btn:active {
+            transform: scale(0.96);
+            box-shadow: inset 5px 5px 15px #070809, inset -5px -5px 15px #212429;
+        }
+
+        .circular-mic-btn.listening {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 115, 255, 0.15), 10px 10px 25px #070809;
+        }
+
+        /* --- CARD INFERIOR (TECLADO) --- */
+        .keyboard-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 18px 15px 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .octave-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .arrow-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid #2c2e35;
+            color: var(--text-main);
+            width: 46px;
+            height: 38px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .arrow-btn:active { background: #2c2e35; }
+        .arrow-btn:disabled { opacity: 0.1; cursor: not-allowed; }
+
+        .current-octave { display: flex; flex-direction: column; align-items: center; }
+        .octave-val { font-size: 1.3rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+        
+        .octave-stepper { display: flex; gap: 5px; margin-top: 8px; }
+        .step { width: 12px; height: 4px; background-color: #2c2e35; border-radius: 2px; transition: all 0.3s ease; }
+        .step.active { background-color: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); width: 18px; }
+
+        .piano-wrapper {
+            position: relative;
+            display: flex;
+            width: 100%;
+            height: 195px;
+            background-color: #090a0b;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .key { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; text-align: center; }
+        .key-name { font-weight: 600; line-height: 1; font-size: 0.65rem; }
+        .key-freq { font-size: 0.48rem; font-weight: 500; opacity: 0.4; margin-top: 2px; }
+
+        .white-key { width: 12.5%; background: var(--key-white); color: #555964; border-right: 1px solid #141517; padding-bottom: 14px; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; z-index: 1; }
+        .white-key:last-child { border-right: none; }
+        .white-key:active, .white-key.active { background: #c5c7cf; color: #111; }
+        .white-key.side-half { width: 6.25%; background: var(--key-white); cursor: default; z-index: 1; }
+
+        .black-key { position: absolute; width: 8.5%; height: 58%; background: var(--key-black); color: #9da3b4; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); z-index: 2; top: 0; border: 1px solid #1a1b1f; padding-bottom: 10px; overflow: hidden; }
+        .black-key:active, .black-key.active { background: var(--key-black-active); color: #fff; }
+
+        .bk-1 { left: calc(6.25% - 4.25%); }
+        .bk-2 { left: calc(6.25% + 12.5% - 4.25%); }
+        .bk-3 { left: calc(6.25% + 25.0% - 4.25%); }
+        .bk-4 { left: calc(6.25% + 37.5% - 4.25%); }
+        .bk-5 { left: calc(6.25% + 50.0% - 4.25%); }
+        .bk-6 { left: calc(6.25% + 62.5% - 4.25%); }
+        .bk-7 { left: calc(6.25% + 75.0% - 4.25%); }
+        .bk-8 { left: calc(6.25% + 87.5% - 4.25%); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div class="display-section">
+            <div id="displayNote" class="main-note">--<span class="octave-number"></span></div>
+            <div id="displayFullName" class="note-name">Aguardando áudio</div>
+            
+            <div class="info-grid">
+                <div class="info-block">
+                    <span class="info-label">Oitava</span>
+                    <span id="displayOctaveText" class="info-value">-</span>
+                </div>
+                <div class="divider"></div>
+                <div class="info-block">
+                    <span class="info-label">Frequência</span>
+                    <span id="displayFreqText" class="info-value">0.0 Hz</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mic-section">
+            <div class="waveform-container" id="waveContainer">
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+            </div>
+            <button class="circular-mic-btn" id="micBtn">
+                <span>Iniciar detecção</span>
+                <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>
+            </button>
+        </div>
+
+        <div class="keyboard-card">
+            <div class="octave-controls">
+                <button class="arrow-btn" id="prevBtn">&#8592;</button>
+                <div class="current-octave">
+                    <span class="octave-val" id="controlOctave">Oitava 2</span>
+                    <div class="octave-stepper" id="stepperContainer">
+                        <div class="step" data-step="2"></div>
+                        <div class="step" data-step="3"></div>
+                        <div class="step" data-step="4"></div>
+                        <div class="step" data-step="5"></div>
+                    </div>
+                </div>
+                <button class="arrow-btn" id="nextBtn">&#8594;</button>
+            </div>
+
+            <div class="piano-wrapper" id="keyboard"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let micStream = null;
+        let analyser = null;
+        let sourceNode = null;
+        let isListening = false;
+        let animationId = null;
+        const bufferLength = 2048;
+        const dataArray = new Float32Array(bufferLength);
+
+        let lastUpdateTime = 0;
+        const updateThrottleTime = 500; 
+
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const noteFullNames = {
+            "C": "Dó", "C#": "Dó Sustenido", "D": "Ré", "D#": "Ré Sustenido", "E": "Mi", 
+            "F": "Fá", "F#": "Fá Sustenido", "G": "Sol", "G#": "Sol Sustenido", "A": "Lá", 
+            "A#": "Lá Sustenido", "B": "Si"
+        };
+        const octaveNames = ["Zero", "Primeira", "Segunda", "Terceira", "Quarta", "Quinta", "Sexta", "Sétima", "Oitava"];
+
+        const whiteNotes = [
+            { name: 'C', fullName: 'Dó', baseFreq: 65.41 }, { name: 'D', fullName: 'Ré', baseFreq: 73.42 },
+            { name: 'E', fullName: 'Mi', baseFreq: 82.41 }, { name: 'F', fullName: 'Fá', baseFreq: 87.31 },
+            { name: 'G', fullName: 'Sol', baseFreq: 98.00 }, { name: 'A', fullName: 'Lá', baseFreq: 110.00 },
+            { name: 'B', fullName: 'Si', baseFreq: 123.47 }
+        ];
+
+        const blackNotes = [
+            { name: 'B#', labelOffset: -1, fullName: 'Si Sustenido', class: 'bk-1', baseFreq: 61.74 },
+            { name: 'C#', labelOffset: 0, fullName: 'Dó Sustenido', class: 'bk-2', baseFreq: 69.30 },
+            { name: 'D#', labelOffset: 0, fullName: 'Ré Sustenido', class: 'bk-3', baseFreq: 77.78 },
+            { name: 'E#', labelOffset: 0, fullName: 'Mi Sustenido', class: 'bk-4', baseFreq: 87.31 },
+            { name: 'F#', labelOffset: 0, fullName: 'Fá Sustenido', class: 'bk-5', baseFreq: 92.50 },
+            { name: 'G#', labelOffset: 0, fullName: 'Sol Sustenido', class: 'bk-6', baseFreq: 103.83 },
+            { name: 'A#', labelOffset: 0, fullName: 'Lá Sustenido', class: 'bk-7', baseFreq: 116.54 },
+            { name: 'B#', labelOffset: 0, fullName: 'Si Sustenido', class: 'bk-8', baseFreq: 130.81 }
+        ];
+
+        let currentOctave = 2;
+        const minOctave = 2;
+        const maxOctave = 5;
+
+        const keyboardDiv = document.getElementById('keyboard');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const controlOctaveDisplay = document.getElementById('controlOctave');
+        const micBtn = document.getElementById('micBtn');
+        const waveContainer = document.getElementById('waveContainer');
+        
+        const displayNote = document.getElementById('displayNote');
+        const displayFullName = document.getElementById('displayFullName');
+        const displayOctaveText = document.getElementById('displayOctaveText');
+        const displayFreqText = document.getElementById('displayFreqText');
+
+        function autoCorrelate(buffer, sampleRate) {
+            let SIZE = buffer.length;
+            let rms = 0;
+
+            for (let i = 0; i < SIZE; i++) {
+                let val = buffer[i];
+                rms += val * val;
+            }
+            rms = Math.sqrt(rms / SIZE);
+            if (rms < 0.01) return -1; 
+
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) {
+                if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
+            }
+            for (let i = SIZE - 1; i >= SIZE / 2; i--) {
+                if (Math.abs(buffer[i]) < thres) { r2 = i; break; }
+            }
+
+            buffer = buffer.slice(r1, r2);
+            SIZE = buffer.length;
+
+            let c = new Float32Array(SIZE);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE - i; j++) {
+                    c[i] = c[i] + buffer[j] * buffer[j + i];
+                }
+            }
+
+            let d = 0;
+            while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) {
+                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            }
+            let T0 = maxpos;
+
+            let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+            let a = (x1 + x3 - 2 * x2) / 2;
+            let b = (x3 - x1) / 2;
+            if (a) T0 = T0 - b / (2 * a);
+
+            return sampleRate / T0;
+        }
+
+        function updatePitch(currentTime) {
+            analyser.getFloatTimeDomainData(dataArray);
+            let frequency = autoCorrelate(dataArray, audioCtx.sampleRate);
+
+            if (currentTime - lastUpdateTime >= updateThrottleTime) {
+                if (frequency !== -1 && frequency >= 40 && frequency <= 2000) {
+                    let noteNum = 12 * (Math.log(frequency / 440) / Math.log(2)) + 69;
+                    let roundedNote = Math.round(noteNum);
+                    
+                    let noteIndex = (roundedNote % 12 + 12) % 12;
+                    let octave = Math.floor(roundedNote / 12) - 1;
+                    let noteName = noteStrings[noteIndex];
+
+                    displayNote.innerHTML = `${noteName}<span class="octave-number">${octave}</span>`;
+                    displayFullName.innerText = noteFullNames[noteName];
+                    displayOctaveText.innerText = (octaveNames[octave] || octave) + " Oitava";
+                    displayFreqText.innerText = `${frequency.toFixed(1)} Hz`;
+                    
+                    lastUpdateTime = currentTime;
+                }
+            }
+            animationId = requestAnimationFrame(updatePitch);
+        }
+
+        async function toggleMic() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            if (isListening) {
+                isListening = false;
+                micBtn.classList.remove('listening');
+                waveContainer.classList.remove('active');
+                micBtn.innerHTML = `<span>Iniciar detecção</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>`;
+                cancelAnimationFrame(animationId);
+                if (micStream) micStream.getTracks().forEach(track => track.stop());
+                
+                displayNote.innerHTML = `--`;
+                displayFullName.innerText = "Detecção encerrada";
+                displayOctaveText.innerText = "-";
+                displayFreqText.innerText = "0.0 Hz";
+            } else {
+                try {
+                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    isListening = true;
+                    micBtn.classList.add('listening');
+                    waveContainer.classList.add('active');
+                    micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-top: 4px;">Fale ou Cante</span>`;
+                    
+                    if(audioCtx.state === 'suspended') await audioCtx.resume();
+
+                    sourceNode = audioCtx.createMediaStreamSource(micStream);
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = bufferLength;
+                    sourceNode.connect(analyser);
+
+                    lastUpdateTime = performance.now();
+                    updatePitch(lastUpdateTime);
+                } catch (err) {
+                    alert("Erro ao acessar o microfone. Verifique as permissões.");
+                    console.error(err);
+                }
+            }
+        }
+
+        micBtn.addEventListener('click', toggleMic);
+
+        // --- SISTEMA DO TECLADO ---
+        function playTone(frequency) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'triangle'; 
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 1.2);
+        }
+
+        function getFrequency(baseFreq, octave) {
+            return (baseFreq * Math.pow(2, octave - 2)).toFixed(1);
+        }
+
+        function updateStepper() {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.toggle('active', parseInt(step.getAttribute('data-step')) === currentOctave);
+            });
+        }
+
+        function renderKeyboard() {
+            keyboardDiv.innerHTML = ''; 
+            
+            const leftHalf = document.createElement('div');
+            leftHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(leftHalf);
+
+            whiteNotes.forEach(note => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                keyDiv.className = 'key white-key';
+                keyDiv.innerHTML = `<span class="key-name">${note.name}${currentOctave}</span><span class="key-freq">${freq}Hz</span>`;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    displayNote.innerHTML = `${note.name}<span class="octave-number">${currentOctave}</span>`;
+                    displayFullName.innerText = note.fullName;
+                    displayOctaveText.innerText = (octaveNames[currentOctave] || currentOctave) + " Oitava";
+                    displayFreqText.innerText = `${freq} Hz`;
+                };
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
+
+            const rightHalf = document.createElement('div');
+            rightHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(rightHalf);
+
+            blackNotes.forEach((note) => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                const calculatedLabelOctave = currentOctave + note.labelOffset;
+
+                keyDiv.className = `key black-key ${note.class}`;
+                keyDiv.innerHTML = `<span class="key-name">${note.name}${calculatedLabelOctave}</span><span class="key-freq">${freq}Hz</span>`;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    displayNote.innerHTML = `${note.name}<span class="octave-number">${calculatedLabelOctave}</span>`;
+                    displayFullName.innerText = note.fullName;
+                    displayOctaveText.innerText = (octaveNames[calculatedLabelOctave] || calculatedLabelOctave) + " Oitava";
+                    displayFreqText.innerText = `${freq} Hz`;
+                };
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
+
+            controlOctaveDisplay.innerText = `Oitava ${currentOctave}`;
+            updateStepper();
+            
+            prevBtn.disabled = currentOctave <= minOctave;
+            nextBtn.disabled = currentOctave >= maxOctave;
+        }
+
+        prevBtn.addEventListener('click', () => { if (currentOctave > minOctave) { currentOctave--; renderKeyboard(); } });
+        nextBtn.addEventListener('click', () => { if (currentOctave < maxOctave) { currentOctave++; renderKeyboard(); } });
+
+        renderKeyboard();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Tom - Minimal Premium</title>
+    <style>
+        :root {
+            --bg-color: #0f1011;
+            --card-bg: #1a1b1e;
+            --card-border: #26282c;
+            --accent-color: #0073ff;
+            --accent-glow: rgba(0, 115, 255, 0.2);
+            
+            --text-main: #ffffff;
+            --text-muted: #848995;
+            
+            --key-white: #e3e4e8;
+            --key-black: #2d2f35;
+            --key-black-active: #1e1f22;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            padding: 15px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 460px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 820px;
+            justify-content: space-between;
+        }
+
+        /* --- SEÇÃO SUPERIOR (ELEMENTOS SOLTOS SEM CAIXA) --- */
+        .display-section {
+            padding: 10px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .main-note {
+            font-size: 5.5rem;
+            font-weight: 800;
+            color: #ffffff; 
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        .octave-number {
+            font-size: 5.5rem; 
+            color: #ffffff;
+        }
+
+        .note-name {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            font-weight: 500;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Grade de informações limpa (sem caixa/fundo escuro interno) */
+        .info-grid {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .info-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .divider {
+            width: 1px;
+            height: 35px;
+            background-color: var(--card-border);
+            margin: 0 15px;
+        }
+
+        /* --- SEÇÃO DO BOTÃO CENTRAL E WAVEFORM --- */
+        .mic-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .waveform-container {
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .wave {
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-color);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .waveform-container.active .wave {
+            animation: pulseWave 2.4s infinite linear;
+        }
+
+        .waveform-container.active .wave:nth-child(1) { animation-delay: 0.0s; }
+        .waveform-container.active .wave:nth-child(2) { animation-delay: 0.8s; }
+        .waveform-container.active .wave:nth-child(3) { animation-delay: 1.6s; }
+
+        @keyframes pulseWave {
+            0% {
+                width: 170px;
+                height: 170px;
+                opacity: 0.4;
+            }
+            100% {
+                width: 320px;
+                height: 320px;
+                opacity: 0;
+            }
+        }
+
+        .circular-mic-btn {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #1c1d22, #141517);
+            border: 3px solid var(--card-border);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            line-height: 1.4;
+            box-shadow: 10px 10px 25px #070809, -10px -10px 25px #212429;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 5;
+        }
+
+        .circular-mic-btn:active {
+            transform: scale(0.96);
+            box-shadow: inset 5px 5px 15px #070809, inset -5px -5px 15px #212429;
+        }
+
+        .circular-mic-btn.listening {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 115, 255, 0.15), 10px 10px 25px #070809;
+        }
+
+        /* --- CARD INFERIOR (TECLADO) --- */
+        .keyboard-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 18px 15px 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .octave-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .arrow-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid #2c2e35;
+            color: var(--text-main);
+            width: 46px;
+            height: 38px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .arrow-btn:active { background: #2c2e35; }
+        .arrow-btn:disabled { opacity: 0.1; cursor: not-allowed; }
+
+        .current-octave { display: flex; flex-direction: column; align-items: center; }
+        .octave-val { font-size: 1.3rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+        
+        .octave-stepper { display: flex; gap: 5px; margin-top: 8px; }
+        .step { width: 12px; height: 4px; background-color: #2c2e35; border-radius: 2px; transition: all 0.3s ease; }
+        .step.active { background-color: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); width: 18px; }
+
+        .piano-wrapper {
+            position: relative;
+            display: flex;
+            width: 100%;
+            height: 195px;
+            background-color: #090a0b;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .key { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; text-align: center; }
+        .key-name { font-weight: 600; line-height: 1; font-size: 0.65rem; }
+        .key-freq { font-size: 0.48rem; font-weight: 500; opacity: 0.4; margin-top: 2px; }
+
+        .white-key { width: 12.5%; background: var(--key-white); color: #555964; border-right: 1px solid #141517; padding-bottom: 14px; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; z-index: 1; }
+        .white-key:last-child { border-right: none; }
+        .white-key:active, .white-key.active { background: #c5c7cf; color: #111; }
+        .white-key.side-half { width: 6.25%; background: var(--key-white); cursor: default; z-index: 1; }
+
+        .black-key { position: absolute; width: 8.5%; height: 58%; background: var(--key-black); color: #9da3b4; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); z-index: 2; top: 0; border: 1px solid #1a1b1f; padding-bottom: 10px; overflow: hidden; }
+        .black-key:active, .black-key.active { background: var(--key-black-active); color: #fff; }
+
+        .bk-1 { left: calc(6.25% - 4.25%); }
+        .bk-2 { left: calc(6.25% + 12.5% - 4.25%); }
+        .bk-3 { left: calc(6.25% + 25.0% - 4.25%); }
+        .bk-4 { left: calc(6.25% + 37.5% - 4.25%); }
+        .bk-5 { left: calc(6.25% + 50.0% - 4.25%); }
+        .bk-6 { left: calc(6.25% + 62.5% - 4.25%); }
+        .bk-7 { left: calc(6.25% + 75.0% - 4.25%); }
+        .bk-8 { left: calc(6.25% + 87.5% - 4.25%); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div class="display-section">
+            <div id="displayNote" class="main-note">--<span class="octave-number"></span></div>
+            <div id="displayFullName" class="note-name">Aguardando áudio</div>
+            
+            <div class="info-grid">
+                <div class="info-block">
+                    <span class="info-label">Oitava</span>
+                    <span id="displayOctaveText" class="info-value">-</span>
+                </div>
+                <div class="divider"></div>
+                <div class="info-block">
+                    <span class="info-label">Frequência</span>
+                    <span id="displayFreqText" class="info-value">0.0 Hz</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mic-section">
+            <div class="waveform-container" id="waveContainer">
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+            </div>
+            <button class="circular-mic-btn" id="micBtn">
+                <span>Iniciar detecção</span>
+                <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>
+            </button>
+        </div>
+
+        <div class="keyboard-card">
+            <div class="octave-controls">
+                <button class="arrow-btn" id="prevBtn">&#8592;</button>
+                <div class="current-octave">
+                    <span class="octave-val" id="controlOctave">Oitava 2</span>
+                    <div class="octave-stepper" id="stepperContainer">
+                        <div class="step" data-step="2"></div>
+                        <div class="step" data-step="3"></div>
+                        <div class="step" data-step="4"></div>
+                        <div class="step" data-step="5"></div>
+                    </div>
+                </div>
+                <button class="arrow-btn" id="nextBtn">&#8594;</button>
+            </div>
+
+            <div class="piano-wrapper" id="keyboard"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let micStream = null;
+        let analyser = null;
+        let sourceNode = null;
+        let isListening = false;
+        let animationId = null;
+        const bufferLength = 2048;
+        const dataArray = new Float32Array(bufferLength);
+
+        let lastUpdateTime = 0;
+        const updateThrottleTime = 500; 
+
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const noteFullNames = {
+            "C": "Dó", "C#": "Dó Sustenido", "D": "Ré", "D#": "Ré Sustenido", "E": "Mi", 
+            "F": "Fá", "F#": "Fá Sustenido", "G": "Sol", "G#": "Sol Sustenido", "A": "Lá", 
+            "A#": "Lá Sustenido", "B": "Si"
+        };
+        const octaveNames = ["Zero", "Primeira", "Segunda", "Terceira", "Quarta", "Quinta", "Sexta", "Sétima", "Oitava"];
+
+        const whiteNotes = [
+            { name: 'C', fullName: 'Dó', baseFreq: 65.41 }, { name: 'D', fullName: 'Ré', baseFreq: 73.42 },
+            { name: 'E', fullName: 'Mi', baseFreq: 82.41 }, { name: 'F', fullName: 'Fá', baseFreq: 87.31 },
+            { name: 'G', fullName: 'Sol', baseFreq: 98.00 }, { name: 'A', fullName: 'Lá', baseFreq: 110.00 },
+            { name: 'B', fullName: 'Si', baseFreq: 123.47 }
+        ];
+
+        const blackNotes = [
+            { name: 'B#', labelOffset: -1, fullName: 'Si Sustenido', class: 'bk-1', baseFreq: 61.74 },
+            { name: 'C#', labelOffset: 0, fullName: 'Dó Sustenido', class: 'bk-2', baseFreq: 69.30 },
+            { name: 'D#', labelOffset: 0, fullName: 'Ré Sustenido', class: 'bk-3', baseFreq: 77.78 },
+            { name: 'E#', labelOffset: 0, fullName: 'Mi Sustenido', class: 'bk-4', baseFreq: 87.31 },
+            { name: 'F#', labelOffset: 0, fullName: 'Fá Sustenido', class: 'bk-5', baseFreq: 92.50 },
+            { name: 'G#', labelOffset: 0, fullName: 'Sol Sustenido', class: 'bk-6', baseFreq: 103.83 },
+            { name: 'A#', labelOffset: 0, fullName: 'Lá Sustenido', class: 'bk-7', baseFreq: 116.54 },
+            { name: 'B#', labelOffset: 0, fullName: 'Si Sustenido', class: 'bk-8', baseFreq: 130.81 }
+        ];
+
+        let currentOctave = 2;
+        const minOctave = 2;
+        const maxOctave = 5;
+
+        const keyboardDiv = document.getElementById('keyboard');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const controlOctaveDisplay = document.getElementById('controlOctave');
+        const micBtn = document.getElementById('micBtn');
+        const waveContainer = document.getElementById('waveContainer');
+        
+        const displayNote = document.getElementById('displayNote');
+        const displayFullName = document.getElementById('displayFullName');
+        const displayOctaveText = document.getElementById('displayOctaveText');
+        const displayFreqText = document.getElementById('displayFreqText');
+
+        function autoCorrelate(buffer, sampleRate) {
+            let SIZE = buffer.length;
+            let rms = 0;
+
+            for (let i = 0; i < SIZE; i++) {
+                let val = buffer[i];
+                rms += val * val;
+            }
+            rms = Math.sqrt(rms / SIZE);
+            if (rms < 0.01) return -1; 
+
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) {
+                if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
+            }
+            for (let i = SIZE - 1; i >= SIZE / 2; i--) {
+                if (Math.abs(buffer[i]) < thres) { r2 = i; break; }
+            }
+
+            buffer = buffer.slice(r1, r2);
+            SIZE = buffer.length;
+
+            let c = new Float32Array(SIZE);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE - i; j++) {
+                    c[i] = c[i] + buffer[j] * buffer[j + i];
+                }
+            }
+
+            let d = 0;
+            while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) {
+                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            }
+            let T0 = maxpos;
+
+            let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+            let a = (x1 + x3 - 2 * x2) / 2;
+            let b = (x3 - x1) / 2;
+            if (a) T0 = T0 - b / (2 * a);
+
+            return sampleRate / T0;
+        }
+
+        function updatePitch(currentTime) {
+            analyser.getFloatTimeDomainData(dataArray);
+            let frequency = autoCorrelate(dataArray, audioCtx.sampleRate);
+
+            if (currentTime - lastUpdateTime >= updateThrottleTime) {
+                if (frequency !== -1 && frequency >= 40 && frequency <= 2000) {
+                    let noteNum = 12 * (Math.log(frequency / 440) / Math.log(2)) + 69;
+                    let roundedNote = Math.round(noteNum);
+                    
+                    let noteIndex = (roundedNote % 12 + 12) % 12;
+                    let octave = Math.floor(roundedNote / 12) - 1;
+                    let noteName = noteStrings[noteIndex];
+
+                    displayNote.innerHTML = `${noteName}<span class="octave-number">${octave}</span>`;
+                    displayFullName.innerText = noteFullNames[noteName];
+                    displayOctaveText.innerText = (octaveNames[octave] || octave) + " Oitava";
+                    displayFreqText.innerText = `${frequency.toFixed(1)} Hz`;
+                    
+                    lastUpdateTime = currentTime;
+                }
+            }
+            animationId = requestAnimationFrame(updatePitch);
+        }
+
+        async function toggleMic() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            if (isListening) {
+                isListening = false;
+                micBtn.classList.remove('listening');
+                waveContainer.classList.remove('active');
+                micBtn.innerHTML = `<span>Iniciar detecção</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>`;
+                cancelAnimationFrame(animationId);
+                if (micStream) micStream.getTracks().forEach(track => track.stop());
+                
+                displayNote.innerHTML = `--`;
+                displayFullName.innerText = "Detecção encerrada";
+                displayOctaveText.innerText = "-";
+                displayFreqText.innerText = "0.0 Hz";
+            } else {
+                try {
+                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    isListening = true;
+                    micBtn.classList.add('listening');
+                    waveContainer.classList.add('active');
+                    micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-top: 4px;">Fale ou Cante</span>`;
+                    
+                    if(audioCtx.state === 'suspended') await audioCtx.resume();
+
+                    sourceNode = audioCtx.createMediaStreamSource(micStream);
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = bufferLength;
+                    sourceNode.connect(analyser);
+
+                    lastUpdateTime = performance.now();
+                    updatePitch(lastUpdateTime);
+                } catch (err) {
+                    alert("Erro ao acessar o microfone. Verifique as permissões.");
+                    console.error(err);
+                }
+            }
+        }
+
+        micBtn.addEventListener('click', toggleMic);
+
+        // --- SISTEMA DO TECLADO ---
+        function playTone(frequency) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'triangle'; 
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 1.2);
+        }
+
+        function getFrequency(baseFreq, octave) {
+            return (baseFreq * Math.pow(2, octave - 2)).toFixed(1);
+        }
+
+        function updateStepper() {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.toggle('active', parseInt(step.getAttribute('data-step')) === currentOctave);
+            });
+        }
+
+        function renderKeyboard() {
+            keyboardDiv.innerHTML = ''; 
+            
+            const leftHalf = document.createElement('div');
+            leftHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(leftHalf);
+
+            whiteNotes.forEach(note => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                keyDiv.className = 'key white-key';
+                keyDiv.innerHTML = `<span class="key-name">${note.name}${currentOctave}</span><span class="key-freq">${freq}Hz</span>`;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    displayNote.innerHTML = `${note.name}<span class="octave-number">${currentOctave}</span>`;
+                    displayFullName.innerText = note.fullName;
+                    displayOctaveText.innerText = (octaveNames[currentOctave] || currentOctave) + " Oitava";
+                    displayFreqText.innerText = `${freq} Hz`;
+                };
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
+
+            const rightHalf = document.createElement('div');
+            rightHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(rightHalf);
+
+            blackNotes.forEach((note) => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                const calculatedLabelOctave = currentOctave + note.labelOffset;
+
+                keyDiv.className = `key black-key ${note.class}`;
+                keyDiv.innerHTML = `<span class="key-name">${note.name}${calculatedLabelOctave}</span><span class="key-freq">${freq}Hz</span>`;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    displayNote.innerHTML = `${note.name}<span class="octave-number">${calculatedLabelOctave}</span>`;
+                    displayFullName.innerText = note.fullName;
+                    displayOctaveText.innerText = (octaveNames[calculatedLabelOctave] || calculatedLabelOctave) + " Oitava";
+                    displayFreqText.innerText = `${freq} Hz`;
+                };
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
+
+            controlOctaveDisplay.innerText = `Oitava ${currentOctave}`;
+            updateStepper();
+            
+            prevBtn.disabled = currentOctave <= minOctave;
+            nextBtn.disabled = currentOctave >= maxOctave;
+        }
+
+        prevBtn.addEventListener('click', () => { if (currentOctave > minOctave) { currentOctave--; renderKeyboard(); } });
+        nextBtn.addEventListener('click', () => { if (currentOctave < maxOctave) { currentOctave++; renderKeyboard(); } });
+
+        renderKeyboard();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Tom - Minimal Premium</title>
+    <style>
+        :root {
+            --bg-color: #0f1011;
+            --card-bg: #1a1b1e;
+            --card-border: #26282c;
+            --accent-color: #0073ff;
+            --accent-glow: rgba(0, 115, 255, 0.2);
+            
+            --text-main: #ffffff;
+            --text-muted: #848995;
+            
+            --key-white: #e3e4e8;
+            --key-black: #2d2f35;
+            --key-black-active: #1e1f22;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            padding: 15px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 460px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 820px;
+            justify-content: space-between;
+        }
+
+        /* --- SEÇÃO SUPERIOR (ELEMENTOS SOLTOS SEM CAIXA) --- */
+        .display-section {
+            padding: 10px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .main-note {
+            font-size: 5.5rem;
+            font-weight: 800;
+            color: #ffffff; 
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        .octave-number {
+            font-size: 5.5rem; 
+            color: #ffffff;
+        }
+
+        .note-name {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            font-weight: 500;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Grade de informações limpa (sem caixa/fundo escuro interno) */
+        .info-grid {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .info-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .divider {
+            width: 1px;
+            height: 35px;
+            background-color: var(--card-border);
+            margin: 0 15px;
+        }
+
+        /* --- SEÇÃO DO BOTÃO CENTRAL E WAVEFORM --- */
+        .mic-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .waveform-container {
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .wave {
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-color);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .waveform-container.active .wave {
+            animation: pulseWave 2.4s infinite linear;
+        }
+
+        .waveform-container.active .wave:nth-child(1) { animation-delay: 0.0s; }
+        .waveform-container.active .wave:nth-child(2) { animation-delay: 0.8s; }
+        .waveform-container.active .wave:nth-child(3) { animation-delay: 1.6s; }
+
+        @keyframes pulseWave {
+            0% {
+                width: 170px;
+                height: 170px;
+                opacity: 0.4;
+            }
+            100% {
+                width: 320px;
+                height: 320px;
+                opacity: 0;
+            }
+        }
+
+        .circular-mic-btn {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #1c1d22, #141517);
+            border: 3px solid var(--card-border);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            line-height: 1.4;
+            box-shadow: 10px 10px 25px #070809, -10px -10px 25px #212429;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 5;
+        }
+
+        .circular-mic-btn:active {
+            transform: scale(0.96);
+            box-shadow: inset 5px 5px 15px #070809, inset -5px -5px 15px #212429;
+        }
+
+        .circular-mic-btn.listening {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 115, 255, 0.15), 10px 10px 25px #070809;
+        }
+
+        /* --- CARD INFERIOR (TECLADO) --- */
+        .keyboard-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 18px 15px 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .octave-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .arrow-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid #2c2e35;
+            color: var(--text-main);
+            width: 46px;
+            height: 38px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .arrow-btn:active { background: #2c2e35; }
+        .arrow-btn:disabled { opacity: 0.1; cursor: not-allowed; }
+
+        .current-octave { display: flex; flex-direction: column; align-items: center; }
+        .octave-val { font-size: 1.3rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+        
+        .octave-stepper { display: flex; gap: 5px; margin-top: 8px; }
+        .step { width: 12px; height: 4px; background-color: #2c2e35; border-radius: 2px; transition: all 0.3s ease; }
+        .step.active { background-color: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); width: 18px; }
+
+        .piano-wrapper {
+            position: relative;
+            display: flex;
+            width: 100%;
+            height: 195px;
+            background-color: #090a0b;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .key { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; text-align: center; }
+        .key-name { font-weight: 600; line-height: 1; font-size: 0.65rem; }
+        .key-freq { font-size: 0.48rem; font-weight: 500; opacity: 0.4; margin-top: 2px; }
+
+        .white-key { width: 12.5%; background: var(--key-white); color: #555964; border-right: 1px solid #141517; padding-bottom: 14px; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; z-index: 1; }
+        .white-key:last-child { border-right: none; }
+        .white-key:active, .white-key.active { background: #c5c7cf; color: #111; }
+        .white-key.side-half { width: 6.25%; background: var(--key-white); cursor: default; z-index: 1; }
+
+        .black-key { position: absolute; width: 8.5%; height: 58%; background: var(--key-black); color: #9da3b4; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); z-index: 2; top: 0; border: 1px solid #1a1b1f; padding-bottom: 10px; overflow: hidden; }
+        .black-key:active, .black-key.active { background: var(--key-black-active); color: #fff; }
+
+        .bk-1 { left: calc(6.25% - 4.25%); }
+        .bk-2 { left: calc(6.25% + 12.5% - 4.25%); }
+        .bk-3 { left: calc(6.25% + 25.0% - 4.25%); }
+        .bk-4 { left: calc(6.25% + 37.5% - 4.25%); }
+        .bk-5 { left: calc(6.25% + 50.0% - 4.25%); }
+        .bk-6 { left: calc(6.25% + 62.5% - 4.25%); }
+        .bk-7 { left: calc(6.25% + 75.0% - 4.25%); }
+        .bk-8 { left: calc(6.25% + 87.5% - 4.25%); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div class="display-section">
+            <div id="displayNote" class="main-note">--<span class="octave-number"></span></div>
+            <div id="displayFullName" class="note-name">Aguardando áudio</div>
+            
+            <div class="info-grid">
+                <div class="info-block">
+                    <span class="info-label">Oitava</span>
+                    <span id="displayOctaveText" class="info-value">-</span>
+                </div>
+                <div class="divider"></div>
+                <div class="info-block">
+                    <span class="info-label">Frequência</span>
+                    <span id="displayFreqText" class="info-value">0.0 Hz</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mic-section">
+            <div class="waveform-container" id="waveContainer">
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+            </div>
+            <button class="circular-mic-btn" id="micBtn">
+                <span>Iniciar detecção</span>
+                <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>
+            </button>
+        </div>
+
+        <div class="keyboard-card">
+            <div class="octave-controls">
+                <button class="arrow-btn" id="prevBtn">&#8592;</button>
+                <div class="current-octave">
+                    <span class="octave-val" id="controlOctave">Oitava 2</span>
+                    <div class="octave-stepper" id="stepperContainer">
+                        <div class="step" data-step="2"></div>
+                        <div class="step" data-step="3"></div>
+                        <div class="step" data-step="4"></div>
+                        <div class="step" data-step="5"></div>
+                    </div>
+                </div>
+                <button class="arrow-btn" id="nextBtn">&#8594;</button>
+            </div>
+
+            <div class="piano-wrapper" id="keyboard"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let micStream = null;
+        let analyser = null;
+        let sourceNode = null;
+        let isListening = false;
+        let animationId = null;
+        const bufferLength = 2048;
+        const dataArray = new Float32Array(bufferLength);
+
+        let lastUpdateTime = 0;
+        const updateThrottleTime = 500; 
+
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const noteFullNames = {
+            "C": "Dó", "C#": "Dó Sustenido", "D": "Ré", "D#": "Ré Sustenido", "E": "Mi", 
+            "F": "Fá", "F#": "Fá Sustenido", "G": "Sol", "G#": "Sol Sustenido", "A": "Lá", 
+            "A#": "Lá Sustenido", "B": "Si"
+        };
+        const octaveNames = ["Zero", "Primeira", "Segunda", "Terceira", "Quarta", "Quinta", "Sexta", "Sétima", "Oitava"];
+
+        const whiteNotes = [
+            { name: 'C', fullName: 'Dó', baseFreq: 65.41 }, { name: 'D', fullName: 'Ré', baseFreq: 73.42 },
+            { name: 'E', fullName: 'Mi', baseFreq: 82.41 }, { name: 'F', fullName: 'Fá', baseFreq: 87.31 },
+            { name: 'G', fullName: 'Sol', baseFreq: 98.00 }, { name: 'A', fullName: 'Lá', baseFreq: 110.00 },
+            { name: 'B', fullName: 'Si', baseFreq: 123.47 }
+        ];
+
+        const blackNotes = [
+            { name: 'B#', labelOffset: -1, fullName: 'Si Sustenido', class: 'bk-1', baseFreq: 61.74 },
+            { name: 'C#', labelOffset: 0, fullName: 'Dó Sustenido', class: 'bk-2', baseFreq: 69.30 },
+            { name: 'D#', labelOffset: 0, fullName: 'Ré Sustenido', class: 'bk-3', baseFreq: 77.78 },
+            { name: 'E#', labelOffset: 0, fullName: 'Mi Sustenido', class: 'bk-4', baseFreq: 87.31 },
+            { name: 'F#', labelOffset: 0, fullName: 'Fá Sustenido', class: 'bk-5', baseFreq: 92.50 },
+            { name: 'G#', labelOffset: 0, fullName: 'Sol Sustenido', class: 'bk-6', baseFreq: 103.83 },
+            { name: 'A#', labelOffset: 0, fullName: 'Lá Sustenido', class: 'bk-7', baseFreq: 116.54 },
+            { name: 'B#', labelOffset: 0, fullName: 'Si Sustenido', class: 'bk-8', baseFreq: 130.81 }
+        ];
+
+        let currentOctave = 2;
+        const minOctave = 2;
+        const maxOctave = 5;
+
+        const keyboardDiv = document.getElementById('keyboard');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const controlOctaveDisplay = document.getElementById('controlOctave');
+        const micBtn = document.getElementById('micBtn');
+        const waveContainer = document.getElementById('waveContainer');
+        
+        const displayNote = document.getElementById('displayNote');
+        const displayFullName = document.getElementById('displayFullName');
+        const displayOctaveText = document.getElementById('displayOctaveText');
+        const displayFreqText = document.getElementById('displayFreqText');
+
+        function autoCorrelate(buffer, sampleRate) {
+            let SIZE = buffer.length;
+            let rms = 0;
+
+            for (let i = 0; i < SIZE; i++) {
+                let val = buffer[i];
+                rms += val * val;
+            }
+            rms = Math.sqrt(rms / SIZE);
+            if (rms < 0.01) return -1; 
+
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) {
+                if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
+            }
+            for (let i = SIZE - 1; i >= SIZE / 2; i--) {
+                if (Math.abs(buffer[i]) < thres) { r2 = i; break; }
+            }
+
+            buffer = buffer.slice(r1, r2);
+            SIZE = buffer.length;
+
+            let c = new Float32Array(SIZE);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE - i; j++) {
+                    c[i] = c[i] + buffer[j] * buffer[j + i];
+                }
+            }
+
+            let d = 0;
+            while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) {
+                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            }
+            let T0 = maxpos;
+
+            let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+            let a = (x1 + x3 - 2 * x2) / 2;
+            let b = (x3 - x1) / 2;
+            if (a) T0 = T0 - b / (2 * a);
+
+            return sampleRate / T0;
+        }
+
+        function updatePitch(currentTime) {
+            analyser.getFloatTimeDomainData(dataArray);
+            let frequency = autoCorrelate(dataArray, audioCtx.sampleRate);
+
+            if (currentTime - lastUpdateTime >= updateThrottleTime) {
+                if (frequency !== -1 && frequency >= 40 && frequency <= 2000) {
+                    let noteNum = 12 * (Math.log(frequency / 440) / Math.log(2)) + 69;
+                    let roundedNote = Math.round(noteNum);
+                    
+                    let noteIndex = (roundedNote % 12 + 12) % 12;
+                    let octave = Math.floor(roundedNote / 12) - 1;
+                    let noteName = noteStrings[noteIndex];
+
+                    displayNote.innerHTML = `${noteName}<span class="octave-number">${octave}</span>`;
+                    displayFullName.innerText = noteFullNames[noteName];
+                    displayOctaveText.innerText = (octaveNames[octave] || octave) + " Oitava";
+                    displayFreqText.innerText = `${frequency.toFixed(1)} Hz`;
+                    
+                    lastUpdateTime = currentTime;
+                }
+            }
+            animationId = requestAnimationFrame(updatePitch);
+        }
+
+        async function toggleMic() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            if (isListening) {
+                isListening = false;
+                micBtn.classList.remove('listening');
+                waveContainer.classList.remove('active');
+                micBtn.innerHTML = `<span>Iniciar detecção</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>`;
+                cancelAnimationFrame(animationId);
+                if (micStream) micStream.getTracks().forEach(track => track.stop());
+                
+                displayNote.innerHTML = `--`;
+                displayFullName.innerText = "Detecção encerrada";
+                displayOctaveText.innerText = "-";
+                displayFreqText.innerText = "0.0 Hz";
+            } else {
+                try {
+                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    isListening = true;
+                    micBtn.classList.add('listening');
+                    waveContainer.classList.add('active');
+                    micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-top: 4px;">Fale ou Cante</span>`;
+                    
+                    if(audioCtx.state === 'suspended') await audioCtx.resume();
+
+                    sourceNode = audioCtx.createMediaStreamSource(micStream);
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = bufferLength;
+                    sourceNode.connect(analyser);
+
+                    lastUpdateTime = performance.now();
+                    updatePitch(lastUpdateTime);
+                } catch (err) {
+                    alert("Erro ao acessar o microfone. Verifique as permissões.");
+                    console.error(err);
+                }
+            }
+        }
+
+        micBtn.addEventListener('click', toggleMic);
+
+        // --- SISTEMA DO TECLADO ---
+        function playTone(frequency) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'triangle'; 
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 1.2);
+        }
+
+        function getFrequency(baseFreq, octave) {
+            return (baseFreq * Math.pow(2, octave - 2)).toFixed(1);
+        }
+
+        function updateStepper() {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.toggle('active', parseInt(step.getAttribute('data-step')) === currentOctave);
+            });
+        }
+
+        function renderKeyboard() {
+            keyboardDiv.innerHTML = ''; 
+            
+            const leftHalf = document.createElement('div');
+            leftHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(leftHalf);
+
+            whiteNotes.forEach(note => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                keyDiv.className = 'key white-key';
+                keyDiv.innerHTML = `<span class="key-name">${note.name}${currentOctave}</span><span class="key-freq">${freq}Hz</span>`;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    displayNote.innerHTML = `${note.name}<span class="octave-number">${currentOctave}</span>`;
+                    displayFullName.innerText = note.fullName;
+                    displayOctaveText.innerText = (octaveNames[currentOctave] || currentOctave) + " Oitava";
+                    displayFreqText.innerText = `${freq} Hz`;
+                };
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
+
+            const rightHalf = document.createElement('div');
+            rightHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(rightHalf);
+
+            blackNotes.forEach((note) => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                const calculatedLabelOctave = currentOctave + note.labelOffset;
+
+                keyDiv.className = `key black-key ${note.class}`;
+                keyDiv.innerHTML = `<span class="key-name">${note.name}${calculatedLabelOctave}</span><span class="key-freq">${freq}Hz</span>`;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    displayNote.innerHTML = `${note.name}<span class="octave-number">${calculatedLabelOctave}</span>`;
+                    displayFullName.innerText = note.fullName;
+                    displayOctaveText.innerText = (octaveNames[calculatedLabelOctave] || calculatedLabelOctave) + " Oitava";
+                    displayFreqText.innerText = `${freq} Hz`;
+                };
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
+
+            controlOctaveDisplay.innerText = `Oitava ${currentOctave}`;
+            updateStepper();
+            
+            prevBtn.disabled = currentOctave <= minOctave;
+            nextBtn.disabled = currentOctave >= maxOctave;
+        }
+
+        prevBtn.addEventListener('click', () => { if (currentOctave > minOctave) { currentOctave--; renderKeyboard(); } });
+        nextBtn.addEventListener('click', () => { if (currentOctave < maxOctave) { currentOctave++; renderKeyboard(); } });
+
+        renderKeyboard();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Tom - Minimal Premium</title>
+    <style>
+        :root {
+            --bg-color: #0f1011;
+            --card-bg: #1a1b1e;
+            --card-border: #26282c;
+            --accent-color: #0073ff;
+            --accent-glow: rgba(0, 115, 255, 0.2);
+            
+            --text-main: #ffffff;
+            --text-muted: #848995;
+            
+            --key-white: #e3e4e8;
+            --key-black: #2d2f35;
+            --key-black-active: #1e1f22;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            padding: 15px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 460px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 820px;
+            justify-content: space-between;
+        }
+
+        /* --- SEÇÃO SUPERIOR (ELEMENTOS SOLTOS SEM CAIXA) --- */
+        .display-section {
+            padding: 10px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .main-note {
+            font-size: 5.5rem;
+            font-weight: 800;
+            color: #ffffff; 
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        .octave-number {
+            font-size: 5.5rem; 
+            color: #ffffff;
+        }
+
+        .note-name {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            font-weight: 500;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Grade de informações limpa (sem caixa/fundo escuro interno) */
+        .info-grid {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .info-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .divider {
+            width: 1px;
+            height: 35px;
+            background-color: var(--card-border);
+            margin: 0 15px;
+        }
+
+        /* --- SEÇÃO DO BOTÃO CENTRAL E WAVEFORM --- */
+        .mic-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .waveform-container {
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .wave {
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-color);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .waveform-container.active .wave {
+            animation: pulseWave 2.4s infinite linear;
+        }
+
+        .waveform-container.active .wave:nth-child(1) { animation-delay: 0.0s; }
+        .waveform-container.active .wave:nth-child(2) { animation-delay: 0.8s; }
+        .waveform-container.active .wave:nth-child(3) { animation-delay: 1.6s; }
+
+        @keyframes pulseWave {
+            0% {
+                width: 170px;
+                height: 170px;
+                opacity: 0.4;
+            }
+            100% {
+                width: 320px;
+                height: 320px;
+                opacity: 0;
+            }
+        }
+
+        .circular-mic-btn {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #1c1d22, #141517);
+            border: 3px solid var(--card-border);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            line-height: 1.4;
+            box-shadow: 10px 10px 25px #070809, -10px -10px 25px #212429;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 5;
+        }
+
+        .circular-mic-btn:active {
+            transform: scale(0.96);
+            box-shadow: inset 5px 5px 15px #070809, inset -5px -5px 15px #212429;
+        }
+
+        .circular-mic-btn.listening {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 115, 255, 0.15), 10px 10px 25px #070809;
+        }
+
+        /* --- CARD INFERIOR (TECLADO) --- */
+        .keyboard-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 18px 15px 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .octave-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .arrow-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid #2c2e35;
+            color: var(--text-main);
+            width: 46px;
+            height: 38px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .arrow-btn:active { background: #2c2e35; }
+        .arrow-btn:disabled { opacity: 0.1; cursor: not-allowed; }
+
+        .current-octave { display: flex; flex-direction: column; align-items: center; }
+        .octave-val { font-size: 1.3rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+        
+        .octave-stepper { display: flex; gap: 5px; margin-top: 8px; }
+        .step { width: 12px; height: 4px; background-color: #2c2e35; border-radius: 2px; transition: all 0.3s ease; }
+        .step.active { background-color: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); width: 18px; }
+
+        .piano-wrapper {
+            position: relative;
+            display: flex;
+            width: 100%;
+            height: 195px;
+            background-color: #090a0b;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .key { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; text-align: center; }
+        .key-name { font-weight: 600; line-height: 1; font-size: 0.65rem; }
+        .key-freq { font-size: 0.48rem; font-weight: 500; opacity: 0.4; margin-top: 2px; }
+
+        .white-key { width: 12.5%; background: var(--key-white); color: #555964; border-right: 1px solid #141517; padding-bottom: 14px; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; z-index: 1; }
+        .white-key:last-child { border-right: none; }
+        .white-key:active, .white-key.active { background: #c5c7cf; color: #111; }
+        .white-key.side-half { width: 6.25%; background: var(--key-white); cursor: default; z-index: 1; }
+
+        .black-key { position: absolute; width: 8.5%; height: 58%; background: var(--key-black); color: #9da3b4; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); z-index: 2; top: 0; border: 1px solid #1a1b1f; padding-bottom: 10px; overflow: hidden; }
+        .black-key:active, .black-key.active { background: var(--key-black-active); color: #fff; }
+
+        .bk-1 { left: calc(6.25% - 4.25%); }
+        .bk-2 { left: calc(6.25% + 12.5% - 4.25%); }
+        .bk-3 { left: calc(6.25% + 25.0% - 4.25%); }
+        .bk-4 { left: calc(6.25% + 37.5% - 4.25%); }
+        .bk-5 { left: calc(6.25% + 50.0% - 4.25%); }
+        .bk-6 { left: calc(6.25% + 62.5% - 4.25%); }
+        .bk-7 { left: calc(6.25% + 75.0% - 4.25%); }
+        .bk-8 { left: calc(6.25% + 87.5% - 4.25%); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div class="display-section">
+            <div id="displayNote" class="main-note">--<span class="octave-number"></span></div>
+            <div id="displayFullName" class="note-name">Aguardando áudio</div>
+            
+            <div class="info-grid">
+                <div class="info-block">
+                    <span class="info-label">Oitava</span>
+                    <span id="displayOctaveText" class="info-value">-</span>
+                </div>
+                <div class="divider"></div>
+                <div class="info-block">
+                    <span class="info-label">Frequência</span>
+                    <span id="displayFreqText" class="info-value">0.0 Hz</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mic-section">
+            <div class="waveform-container" id="waveContainer">
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+            </div>
+            <button class="circular-mic-btn" id="micBtn">
+                <span>Iniciar detecção</span>
+                <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>
+            </button>
+        </div>
+
+        <div class="keyboard-card">
+            <div class="octave-controls">
+                <button class="arrow-btn" id="prevBtn">&#8592;</button>
+                <div class="current-octave">
+                    <span class="octave-val" id="controlOctave">Oitava 2</span>
+                    <div class="octave-stepper" id="stepperContainer">
+                        <div class="step" data-step="2"></div>
+                        <div class="step" data-step="3"></div>
+                        <div class="step" data-step="4"></div>
+                        <div class="step" data-step="5"></div>
+                    </div>
+                </div>
+                <button class="arrow-btn" id="nextBtn">&#8594;</button>
+            </div>
+
+            <div class="piano-wrapper" id="keyboard"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let micStream = null;
+        let analyser = null;
+        let sourceNode = null;
+        let isListening = false;
+        let animationId = null;
+        const bufferLength = 2048;
+        const dataArray = new Float32Array(bufferLength);
+
+        let lastUpdateTime = 0;
+        const updateThrottleTime = 500; 
+
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const noteFullNames = {
+            "C": "Dó", "C#": "Dó Sustenido", "D": "Ré", "D#": "Ré Sustenido", "E": "Mi", 
+            "F": "Fá", "F#": "Fá Sustenido", "G": "Sol", "G#": "Sol Sustenido", "A": "Lá", 
+            "A#": "Lá Sustenido", "B": "Si"
+        };
+        const octaveNames = ["Zero", "Primeira", "Segunda", "Terceira", "Quarta", "Quinta", "Sexta", "Sétima", "Oitava"];
+
+        const whiteNotes = [
+            { name: 'C', fullName: 'Dó', baseFreq: 65.41 }, { name: 'D', fullName: 'Ré', baseFreq: 73.42 },
+            { name: 'E', fullName: 'Mi', baseFreq: 82.41 }, { name: 'F', fullName: 'Fá', baseFreq: 87.31 },
+            { name: 'G', fullName: 'Sol', baseFreq: 98.00 }, { name: 'A', fullName: 'Lá', baseFreq: 110.00 },
+            { name: 'B', fullName: 'Si', baseFreq: 123.47 }
+        ];
+
+        const blackNotes = [
+            { name: 'B#', labelOffset: -1, fullName: 'Si Sustenido', class: 'bk-1', baseFreq: 61.74 },
+            { name: 'C#', labelOffset: 0, fullName: 'Dó Sustenido', class: 'bk-2', baseFreq: 69.30 },
+            { name: 'D#', labelOffset: 0, fullName: 'Ré Sustenido', class: 'bk-3', baseFreq: 77.78 },
+            { name: 'E#', labelOffset: 0, fullName: 'Mi Sustenido', class: 'bk-4', baseFreq: 87.31 },
+            { name: 'F#', labelOffset: 0, fullName: 'Fá Sustenido', class: 'bk-5', baseFreq: 92.50 },
+            { name: 'G#', labelOffset: 0, fullName: 'Sol Sustenido', class: 'bk-6', baseFreq: 103.83 },
+            { name: 'A#', labelOffset: 0, fullName: 'Lá Sustenido', class: 'bk-7', baseFreq: 116.54 },
+            { name: 'B#', labelOffset: 0, fullName: 'Si Sustenido', class: 'bk-8', baseFreq: 130.81 }
+        ];
+
+        let currentOctave = 2;
+        const minOctave = 2;
+        const maxOctave = 5;
+
+        const keyboardDiv = document.getElementById('keyboard');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const controlOctaveDisplay = document.getElementById('controlOctave');
+        const micBtn = document.getElementById('micBtn');
+        const waveContainer = document.getElementById('waveContainer');
+        
+        const displayNote = document.getElementById('displayNote');
+        const displayFullName = document.getElementById('displayFullName');
+        const displayOctaveText = document.getElementById('displayOctaveText');
+        const displayFreqText = document.getElementById('displayFreqText');
+
+        function autoCorrelate(buffer, sampleRate) {
+            let SIZE = buffer.length;
+            let rms = 0;
+
+            for (let i = 0; i < SIZE; i++) {
+                let val = buffer[i];
+                rms += val * val;
+            }
+            rms = Math.sqrt(rms / SIZE);
+            if (rms < 0.01) return -1; 
+
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) {
+                if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
+            }
+            for (let i = SIZE - 1; i >= SIZE / 2; i--) {
+                if (Math.abs(buffer[i]) < thres) { r2 = i; break; }
+            }
+
+            buffer = buffer.slice(r1, r2);
+            SIZE = buffer.length;
+
+            let c = new Float32Array(SIZE);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE - i; j++) {
+                    c[i] = c[i] + buffer[j] * buffer[j + i];
+                }
+            }
+
+            let d = 0;
+            while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) {
+                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            }
+            let T0 = maxpos;
+
+            let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+            let a = (x1 + x3 - 2 * x2) / 2;
+            let b = (x3 - x1) / 2;
+            if (a) T0 = T0 - b / (2 * a);
+
+            return sampleRate / T0;
+        }
+
+        function updatePitch(currentTime) {
+            analyser.getFloatTimeDomainData(dataArray);
+            let frequency = autoCorrelate(dataArray, audioCtx.sampleRate);
+
+            if (currentTime - lastUpdateTime >= updateThrottleTime) {
+                if (frequency !== -1 && frequency >= 40 && frequency <= 2000) {
+                    let noteNum = 12 * (Math.log(frequency / 440) / Math.log(2)) + 69;
+                    let roundedNote = Math.round(noteNum);
+                    
+                    let noteIndex = (roundedNote % 12 + 12) % 12;
+                    let octave = Math.floor(roundedNote / 12) - 1;
+                    let noteName = noteStrings[noteIndex];
+
+                    displayNote.innerHTML = `${noteName}<span class="octave-number">${octave}</span>`;
+                    displayFullName.innerText = noteFullNames[noteName];
+                    displayOctaveText.innerText = (octaveNames[octave] || octave) + " Oitava";
+                    displayFreqText.innerText = `${frequency.toFixed(1)} Hz`;
+                    
+                    lastUpdateTime = currentTime;
+                }
+            }
+            animationId = requestAnimationFrame(updatePitch);
+        }
+
+        async function toggleMic() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            if (isListening) {
+                isListening = false;
+                micBtn.classList.remove('listening');
+                waveContainer.classList.remove('active');
+                micBtn.innerHTML = `<span>Iniciar detecção</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>`;
+                cancelAnimationFrame(animationId);
+                if (micStream) micStream.getTracks().forEach(track => track.stop());
+                
+                displayNote.innerHTML = `--`;
+                displayFullName.innerText = "Detecção encerrada";
+                displayOctaveText.innerText = "-";
+                displayFreqText.innerText = "0.0 Hz";
+            } else {
+                try {
+                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    isListening = true;
+                    micBtn.classList.add('listening');
+                    waveContainer.classList.add('active');
+                    micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-top: 4px;">Fale ou Cante</span>`;
+                    
+                    if(audioCtx.state === 'suspended') await audioCtx.resume();
+
+                    sourceNode = audioCtx.createMediaStreamSource(micStream);
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = bufferLength;
+                    sourceNode.connect(analyser);
+
+                    lastUpdateTime = performance.now();
+                    updatePitch(lastUpdateTime);
+                } catch (err) {
+                    alert("Erro ao acessar o microfone. Verifique as permissões.");
+                    console.error(err);
+                }
+            }
+        }
+
+        micBtn.addEventListener('click', toggleMic);
+
+        // --- SISTEMA DO TECLADO ---
+        function playTone(frequency) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'triangle'; 
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 1.2);
+        }
+
+        function getFrequency(baseFreq, octave) {
+            return (baseFreq * Math.pow(2, octave - 2)).toFixed(1);
+        }
+
+        function updateStepper() {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.toggle('active', parseInt(step.getAttribute('data-step')) === currentOctave);
+            });
+        }
+
+        function renderKeyboard() {
+            keyboardDiv.innerHTML = ''; 
+            
+            const leftHalf = document.createElement('div');
+            leftHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(leftHalf);
+
+            whiteNotes.forEach(note => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                keyDiv.className = 'key white-key';
+                keyDiv.innerHTML = `<span class="key-name">${note.name}${currentOctave}</span><span class="key-freq">${freq}Hz</span>`;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    displayNote.innerHTML = `${note.name}<span class="octave-number">${currentOctave}</span>`;
+                    displayFullName.innerText = note.fullName;
+                    displayOctaveText.innerText = (octaveNames[currentOctave] || currentOctave) + " Oitava";
+                    displayFreqText.innerText = `${freq} Hz`;
+                };
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
+
+            const rightHalf = document.createElement('div');
+            rightHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(rightHalf);
+
+            blackNotes.forEach((note) => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                const calculatedLabelOctave = currentOctave + note.labelOffset;
+
+                keyDiv.className = `key black-key ${note.class}`;
+                keyDiv.innerHTML = `<span class="key-name">${note.name}${calculatedLabelOctave}</span><span class="key-freq">${freq}Hz</span>`;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    displayNote.innerHTML = `${note.name}<span class="octave-number">${calculatedLabelOctave}</span>`;
+                    displayFullName.innerText = note.fullName;
+                    displayOctaveText.innerText = (octaveNames[calculatedLabelOctave] || calculatedLabelOctave) + " Oitava";
+                    displayFreqText.innerText = `${freq} Hz`;
+                };
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
+
+            controlOctaveDisplay.innerText = `Oitava ${currentOctave}`;
+            updateStepper();
+            
+            prevBtn.disabled = currentOctave <= minOctave;
+            nextBtn.disabled = currentOctave >= maxOctave;
+        }
+
+        prevBtn.addEventListener('click', () => { if (currentOctave > minOctave) { currentOctave--; renderKeyboard(); } });
+        nextBtn.addEventListener('click', () => { if (currentOctave < maxOctave) { currentOctave++; renderKeyboard(); } });
+
+        renderKeyboard();
+    </script>
+</body>
 </html>
