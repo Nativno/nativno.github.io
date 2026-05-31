@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Tom - Otimizado Mobile</title>
+    <title>Detector de Tom - Versão Estável Mobile</title>
     <style>
         :root {
             --bg-color: #0f1011;
@@ -322,15 +322,12 @@
     <script>
         let audioCtx = null;
         let micStream = null;
-        let analyser = null;
+        let scriptProcessor = null;
         let sourceNode = null;
         let isListening = false;
-        let animationId = null;
-        const bufferLength = 1024; // Reduzido de 2048 para 1024 (Melhora drasticamente a performance mobile)
-        const dataArray = new Float32Array(bufferLength);
 
-        let lastUpdateTime = 0;
-        const updateThrottleTime = 500; 
+        // Janela de amostragem aumentada para 4096 para conseguir enxergar ondas graves (C2 = 65Hz) sem atrasar
+        const bufferSize = 4096; 
 
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
         const noteFullNames = {
@@ -374,75 +371,110 @@
         const displayOctaveText = document.getElementById('displayOctaveText');
         const displayFreqText = document.getElementById('displayFreqText');
 
-        function autoCorrelate(buffer, sampleRate) {
-            let SIZE = buffer.length;
+        // Algoritmo otimizado de detecção de Pitch estável por autocorrelação direta limpa
+        function complexPitchDetect(buffer, sampleRate) {
+            let size = buffer.length;
             let rms = 0;
 
-            for (let i = 0; i < SIZE; i++) {
-                let val = buffer[i];
-                rms += val * val;
+            for (let i = 0; i < size; i++) {
+                rms += buffer[i] * buffer[i];
             }
-            rms = Math.sqrt(rms / SIZE);
-            if (rms < 0.015) return -1; // Sensibilidade de ruído levemente ajustada para mobile
+            rms = Math.sqrt(rms / size);
+            if (rms < 0.02) return -1; // Ignora ruídos de fundo fracos no celular
 
-            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
-            for (let i = 0; i < SIZE / 2; i++) {
+            let r1 = 0, r2 = size - 1, thres = 0.15;
+            for (let i = 0; i < size / 2; i++) {
                 if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
             }
-            for (let i = SIZE - 1; i >= SIZE / 2; i--) {
+            for (let i = size - 1; i >= size / 2; i--) {
                 if (Math.abs(buffer[i]) < thres) { r2 = i; break; }
             }
-
             buffer = buffer.slice(r1, r2);
-            SIZE = buffer.length;
+            size = buffer.length;
 
-            let c = new Float32Array(SIZE);
-            for (let i = 0; i < SIZE; i++) {
-                for (let j = 0; j < SIZE - i; j++) {
-                    c[i] = c[i] + buffer[j] * buffer[j + i];
+            let correlations = new Float32Array(size);
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size - i; j++) {
+                    correlations[i] += buffer[j] * buffer[j + i];
                 }
             }
 
             let d = 0;
-            while (c[d] > c[d + 1]) d++;
+            while (correlations[d] > correlations[d + 1]) d++;
             let maxval = -1, maxpos = -1;
-            for (let i = d; i < SIZE; i++) {
-                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            for (let i = d; i < size; i++) {
+                if (correlations[i] > maxval) {
+                    maxval = correlations[i];
+                    maxpos = i;
+                }
             }
+
             let T0 = maxpos;
+            if (T0 > 0 && T0 < size - 1) {
+                let x1 = correlations[T0 - 1], x2 = correlations[T0], x3 = correlations[T0 + 1];
+                let a = (x1 + x3 - 2 * x2) / 2;
+                let b = (x3 - x1) / 2;
+                if (a) T0 = T0 - b / (2 * a);
+            }
 
-            let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-            let a = (x1 + x3 - 2 * x2) / 2;
-            let b = (x3 - x1) / 2;
-            if (a) T0 = T0 - b / (2 * a);
-
-            return sampleRate / T0;
+            let freq = sampleRate / T0;
+            return (freq > 40 && freq < 1200) ? freq : -1;
         }
 
-        // OTIMIZAÇÃO CRUCIAL: O loop roda leve, e só calcula a matemática pesada a cada 500ms
-        function updatePitch(currentTime) {
+        // Sistema de filtro de estabilidade por votos (Impede a nota de pular loucamente na tela)
+        let noteVotes = {};
+        let totalVotesCollected = 0;
+        let collectedFreqs = [];
+
+        function processAudioBuffer(e) {
             if (!isListening) return;
+            
+            const inputBuffer = e.inputBuffer.getChannelData(0);
+            const frequency = complexPitchDetect(inputBuffer, audioCtx.sampleRate);
 
-            if (currentTime - lastUpdateTime >= updateThrottleTime) {
-                analyser.getFloatTimeDomainData(dataArray);
-                let frequency = autoCorrelate(dataArray, audioCtx.sampleRate);
+            if (frequency !== -1) {
+                let noteNum = 12 * (Math.log(frequency / 440) / Math.log(2)) + 69;
+                let roundedNote = Math.round(noteNum);
+                let noteIndex = (roundedNote % 12 + 12) % 12;
+                let octave = Math.floor(roundedNote / 12) - 1;
+                let keyKey = noteStrings[noteIndex] + "|" + octave;
 
-                if (frequency !== -1 && frequency >= 40 && frequency <= 2000) {
-                    let noteNum = 12 * (Math.log(frequency / 440) / Math.log(2)) + 69;
-                    let roundedNote = Math.round(noteNum);
-                    
-                    let noteIndex = (roundedNote % 12 + 12) % 12;
-                    let octave = Math.floor(roundedNote / 12) - 1;
-                    let noteName = noteStrings[noteIndex];
+                noteVotes[keyKey] = (noteVotes[keyKey] || 0) + 1;
+                collectedFreqs.push(frequency);
+            }
+            totalVotesCollected++;
+
+            // Renderiza na tela rigidamente a cada 500ms (Aproximadamente 5 blocos de buffer de 4096 amostras a 44.1kHz)
+            if (totalVotesCollected >= 5) {
+                let winnerKey = null;
+                let maxVotes = 0;
+
+                for (let key in noteVotes) {
+                    if (noteVotes[key] > maxVotes) {
+                        maxVotes = noteVotes[key];
+                        winnerKey = key;
+                    }
+                }
+
+                if (winnerKey && maxVotes >= 2) { // Exige pelo menos 2 confirmações idênticas
+                    let parts = winnerKey.split("|");
+                    let noteName = parts[0];
+                    let octave = parts[1];
+
+                    // Calcula a média das frequências válidas detectadas nesse ciclo
+                    let avgFreq = collectedFreqs.reduce((a, b) => a + b, 0) / collectedFreqs.length;
 
                     displayNote.innerHTML = `${noteName}<span class="octave-number">${octave}</span>`;
                     displayFullName.innerText = noteFullNames[noteName];
                     displayOctaveText.innerText = (octaveNames[octave] || octave) + " Oitava";
-                    displayFreqText.innerText = `${frequency.toFixed(1)} Hz`;
+                    displayFreqText.innerText = `${avgFreq.toFixed(1)} Hz`;
                 }
-                lastUpdateTime = currentTime;
+
+                // Limpeza absoluta da memória do buffer para evitar efeito bola de neve no celular
+                noteVotes = {};
+                totalVotesCollected = 0;
+                collectedFreqs = [];
             }
-            animationId = requestAnimationFrame(updatePitch);
         }
 
         async function toggleMic() {
@@ -453,16 +485,21 @@
                 micBtn.classList.remove('listening');
                 waveContainer.classList.remove('active');
                 micBtn.innerHTML = `<span>Iniciar detecção</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>`;
-                cancelAnimationFrame(animationId);
-                if (micStream) micStream.getTracks().forEach(track => track.stop());
                 
+                if (scriptProcessor) {
+                    scriptProcessor.onaudioprocess = null;
+                    scriptProcessor.disconnect();
+                }
+                if (sourceNode) sourceNode.disconnect();
+                if (micStream) micStream.getTracks().forEach(track => track.stop());
+
                 displayNote.innerHTML = `--`;
                 displayFullName.innerText = "Detecção encerrada";
                 displayOctaveText.innerText = "-";
                 displayFreqText.innerText = "0.0 Hz";
             } else {
                 try {
-                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                     isListening = true;
                     micBtn.classList.add('listening');
                     waveContainer.classList.add('active');
@@ -471,14 +508,19 @@
                     if(audioCtx.state === 'suspended') await audioCtx.resume();
 
                     sourceNode = audioCtx.createMediaStreamSource(micStream);
-                    analyser = audioCtx.createAnalyser();
-                    analyser.fftSize = bufferLength;
-                    sourceNode.connect(analyser);
+                    
+                    // ScriptProcessor garante estabilidade de temporização nativa em navegadores móveis
+                    scriptProcessor = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+                    scriptProcessor.onaudioprocess = processAudioBuffer;
 
-                    lastUpdateTime = performance.now();
-                    updatePitch(lastUpdateTime);
+                    sourceNode.connect(scriptProcessor);
+                    scriptProcessor.connect(audioCtx.destination);
+
+                    noteVotes = {};
+                    totalVotesCollected = 0;
+                    collectedFreqs = [];
                 } catch (err) {
-                    alert("Erro ao acessar o microfone. Verifique as permissões do seu celular.");
+                    alert("Por favor, permita o acesso ao microfone nas configurações do seu celular.");
                     console.error(err);
                 }
             }
