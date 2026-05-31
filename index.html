@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Tom - Premium UI Unificado</title>
+    <title>Detector de Tom - Premium UI Final</title>
     <style>
         :root {
             --bg-color: #0f1011;
@@ -46,7 +46,7 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            max-height: 800px;
+            max-height: 820px;
             justify-content: space-between;
         }
 
@@ -153,7 +153,7 @@
             margin-top: 4px;
         }
 
-        /* --- CARD INFERIOR (CONTROLES INTERNOS E TECLADO) --- */
+        /* --- CARD INFERIOR (CONTROLES E TECLADO) --- */
         .keyboard-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -165,7 +165,6 @@
             gap: 15px;
         }
 
-        /* Área superior interna do teclado com os controles originais reestilizados */
         .octave-controls {
             display: flex;
             justify-content: space-between;
@@ -196,13 +195,21 @@
             flex-direction: column;
             align-items: center;
         }
-        .octave-val { font-size: 2rem; font-weight: 700; display: block; line-height: 1; color: #fff; }
         
-        /* O Stepper de barras original */
+        /* Ajuste do texto solicitado: "Oitava X" */
+        .octave-val { 
+            font-size: 1.3rem; 
+            font-weight: 700; 
+            display: block; 
+            line-height: 1.2; 
+            color: #fff; 
+            letter-spacing: 0.5px;
+        }
+        
         .octave-stepper {
             display: flex;
             gap: 5px;
-            margin-top: 10px;
+            margin-top: 8px;
         }
         .step {
             width: 12px;
@@ -217,12 +224,12 @@
             width: 18px;
         }
 
-        /* CORPO DO PIANO */
+        /* CORPO DO PIANO (+15% de Altura: de 170px para 195px) */
         .piano-wrapper {
             position: relative;
             display: flex;
             width: 100%;
-            height: 170px;
+            height: 195px;
             background-color: #090a0b;
             border-radius: 8px;
             overflow: hidden;
@@ -240,13 +247,13 @@
         .key-name { font-weight: 600; line-height: 1; font-size: 0.65rem; }
         .key-freq { font-size: 0.48rem; font-weight: 500; opacity: 0.4; margin-top: 2px; }
 
-        /* Teclas Brancas Premium */
+        /* Teclas Brancas (+15% mais altas) */
         .white-key {
             width: 12.5%;
             background: var(--key-white);
             color: #555964;
             border-right: 1px solid #141517;
-            padding-bottom: 12px;
+            padding-bottom: 14px;
             border-bottom-left-radius: 4px;
             border-bottom-right-radius: 4px;
             z-index: 1;
@@ -261,7 +268,7 @@
             z-index: 1;
         }
 
-        /* Teclas Pretas Premium */
+        /* Teclas Pretas (Mantêm proporção anatômica de 58% da altura do wrapper) */
         .black-key {
             position: absolute;
             width: 8.5%; 
@@ -279,7 +286,7 @@
         }
         .black-key:active, .black-key.active { background: var(--key-black-active); color: #fff; }
 
-        /* Posicionamento Anatômico nos vãos (idêntico ao anterior) */
+        /* Alinhamento anatômico nas frestas */
         .bk-1 { left: calc(6.25% - 4.25%); }
         .bk-2 { left: calc(6.25% + 12.5% - 4.25%); }
         .bk-3 { left: calc(6.25% + 25.0% - 4.25%); }
@@ -295,6 +302,7 @@
 
     <div class="app-container">
         
+        <!-- CARD SUPERIOR: Gráfico e Dados de Detecção -->
         <div class="main-card">
             <div class="card-header">
                 <button class="action-btn" id="actionBtn">Pausar</button>
@@ -322,12 +330,14 @@
             </div>
         </div>
 
+        <!-- CARD INFERIOR: Controles Reestilizados + Teclado Mais Alto -->
         <div class="keyboard-card">
             
             <div class="octave-controls">
                 <button class="arrow-btn" id="prevBtn">&#8592;</button>
                 <div class="current-octave">
-                    <span class="octave-val" id="controlOctave">2</span>
+                    <!-- Modificado para exibir a palavra "Oitava" ao lado do número -->
+                    <span class="octave-val" id="controlOctave">Oitava 2</span>
                     <div class="octave-stepper" id="stepperContainer">
                         <div class="step" data-step="2"></div>
                         <div class="step" data-step="3"></div>
@@ -338,8 +348,10 @@
                 <button class="arrow-btn" id="nextBtn">&#8594;</button>
             </div>
 
+            <!-- Corpo do Piano -->
             <div class="piano-wrapper" id="keyboard">
-                </div>
+                <!-- Gerado dinamicamente via JS -->
+            </div>
         </div>
 
     </div>
@@ -377,7 +389,6 @@
         const nextBtn = document.getElementById('nextBtn');
         const controlOctaveDisplay = document.getElementById('controlOctave');
         
-        // Elementos do Display
         const simpleNote = document.getElementById('simpleNote');
         const accentNote = document.getElementById('accentNote');
         const fullNameDisplay = document.getElementById('fullNameDisplay');
@@ -430,7 +441,7 @@
         function renderKeyboard() {
             keyboardDiv.innerHTML = ''; 
             
-            // 1. Lateral Esquerda (Meia Branca)
+            // 1. Meia branca esquerda
             const leftHalf = document.createElement('div');
             leftHalf.className = 'key white-key side-half';
             keyboardDiv.appendChild(leftHalf);
@@ -462,12 +473,12 @@
                 keyboardDiv.appendChild(keyDiv);
             });
 
-            // 3. Lateral Direita (Meia Branca)
+            // 3. Meia branca direita
             const rightHalf = document.createElement('div');
             rightHalf.className = 'key white-key side-half';
             keyboardDiv.appendChild(rightHalf);
 
-            // 4. Pretas sobrepostas nos vãos anatômicos
+            // 4. Pretas sobrepostas
             blackNotes.forEach((note) => {
                 const freq = getFrequency(note.baseFreq, currentOctave);
                 const keyDiv = document.createElement('div');
@@ -496,7 +507,8 @@
                 keyboardDiv.appendChild(keyDiv);
             });
 
-            controlOctaveDisplay.innerText = currentOctave;
+            // Atualiza o texto do indicador para "Oitava X"
+            controlOctaveDisplay.innerText = `Oitava ${currentOctave}`;
             updateStepper();
             
             prevBtn.disabled = currentOctave <= minOctave;
