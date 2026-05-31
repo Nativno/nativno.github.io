@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Tom - Premium UI Completo</title>
+    <title>Detector de Tom - Minimal Premium</title>
     <style>
         :root {
             --bg-color: #0f1011;
@@ -50,13 +50,9 @@
             justify-content: space-between;
         }
 
-        /* --- DISPLAY SUPERIOR --- */
-        .main-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 24px 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        /* --- SEÇÃO SUPERIOR (ELEMENTOS SOLTOS SEM CAIXA) --- */
+        .display-section {
+            padding: 10px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -84,15 +80,13 @@
             letter-spacing: 0.5px;
         }
 
+        /* Grade de informações limpa (sem caixa/fundo escuro interno) */
         .info-grid {
             width: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #141517;
-            border: 1px solid #202226;
-            border-radius: 14px;
-            padding: 14px 10px;
+            padding: 10px 0;
         }
 
         .info-block {
@@ -285,7 +279,7 @@
 
     <div class="app-container">
         
-        <div class="main-card">
+        <div class="display-section">
             <div id="displayNote" class="main-note">--<span class="octave-number"></span></div>
             <div id="displayFullName" class="note-name">Aguardando áudio</div>
             
@@ -462,7 +456,6 @@
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             
             if (isListening) {
-                // --- PARAR DETECÇÃO ---
                 isListening = false;
                 micBtn.classList.remove('listening');
                 waveContainer.classList.remove('active');
@@ -470,13 +463,11 @@
                 cancelAnimationFrame(animationId);
                 if (micStream) micStream.getTracks().forEach(track => track.stop());
                 
-                // AJUSTE SOLICITADO: Limpa todos os mostradores dinâmicos para "-"
                 displayNote.innerHTML = `--`;
                 displayFullName.innerText = "Detecção encerrada";
                 displayOctaveText.innerText = "-";
                 displayFreqText.innerText = "0.0 Hz";
             } else {
-                // --- INICIAR DETECÇÃO ---
                 try {
                     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     isListening = true;
