@@ -1,271 +1,161 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Notas</title>
+    <title>Piano Minimalista</title>
     <style>
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        body { 
+            background-color: #0f0f0f; 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: 'Inter', sans-serif; 
+            gap: 40px;
         }
-
-        h1 { font-size: 26.4px; font-weight: 500; margin-bottom: 20px; }
-
-        .control-box {
-            border: 1px solid #4a4a5a;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
+        #keyboard { 
+            display: flex; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            border-radius: 16px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4); 
         }
-
-        .no-border { border: none; }
-
-        .box-title { font-size: 18px; color: #ffffff; margin-bottom: 5px; font-weight: bold; }
-        .box-subtitle { font-size: 13.2px; color: #888; margin-bottom: 15px; }
-
-        .mode-selector { display: flex; gap: 10px; justify-content: center; width: 100%; }
-
-        /* Container específico para alinhar Breadcrumb e Setas */
-        .transposition-container { display: flex; flex-direction: column; gap: 10px; align-items: center; }
-
-        /* Breadcrumb com texto aumentado 10% (14.3px -> 15.7px) */
-        .breadcrumb { display: flex; gap: 5px; justify-content: center; }
-        .crumb { 
-            padding: 5px 0; border: 1px solid #4a4a5a; border-radius: 4px; color: #666; 
-            font-size: 15.7px; width: 48px; text-align: center; cursor: pointer; transition: all 0.3s;
-        }
-        .crumb:hover { border-color: #888; color: #fff; }
-        .crumb.active { border-color: #64b5f6; color: #64b5f6; background: rgba(100, 181, 246, 0.1); font-weight: bold; }
-
-        /* Setas na largura da lista */
-        .nav-row { display: flex; gap: 5px; width: 100%; }
-        .nav-btn-wide { flex: 1; padding: 10px; border: 1px solid #4a4a5a; background-color: #2a2a35; color: #aaa; cursor: pointer; border-radius: 5px; font-size: 16.5px; }
-        .nav-btn-wide:hover { background-color: #3f3f4e; color: white; }
-
-        .mode-btn {
-            padding: 10px 15px;
-            border: 1px solid #4a4a5a;
-            background-color: #2a2a35;
-            color: #aaa;
-            cursor: pointer;
-            border-radius: 5px;
-            font-size: 16.5px;
-        }
-        .mode-btn.active { background-color: #64b5f6; color: #000; border-color: #64b5f6; font-weight: bold; }
-
-        .pitch-pipe-container { position: relative; width: 300px; height: 300px; margin-bottom: 40px; }
+        .key { width: 55px; height: 160px; cursor: pointer; border-radius: 0 0 8px 8px; margin: 0 5px; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 10px; font-weight: 500; user-select: none; }
+        .label { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .note-name { font-size: 13px; }
+        .note-freq { font-size: 10px; opacity: 0.7; }
+        .white { background: #e0e0e0; color: #555; z-index: 1; }
+        .black { background: #333; color: #aaa; width: 40px; height: 100px; margin-left: -22px; margin-right: -22px; z-index: 3; border-radius: 0 0 6px 6px; }
+        .playing { background-color: #007AFF !important; color: #fff !important; box-shadow: 0 0 20px #007AFF; }
         
-        .center-circle {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 120px; height: 120px; border-radius: 50%; background-color: #2a2a35;
-            border: 2px solid #4a4a5a; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 10;
+        /* Painel de controles na vertical */
+        #controls { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
         }
-
-        #display-note { font-size: 40px; font-weight: 900; line-height: 1; }
-        #display-pt { font-size: 16px; color: #aaaaaa; margin-top: 5px; }
-        #display-freq { font-size: 12px; color: #64b5f6; margin-top: 5px; font-family: monospace; }
-
-        .note-btn {
-            position: absolute; top: 50%; left: 50%; margin: -33px; width: 66px; height: 66px;
-            border-radius: 50%; background-color: #2a2a35; border: 2px solid #888; color: white;
-            font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center;
-            justify-content: center; transition: all 0.2s ease;
+        .toggle-wrapper { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            color: #888; 
+            font-size: 14px; 
         }
-        .note-btn:hover { background-color: #3f3f4e; }
-        .note-btn.playing { border-color: #64b5f6; background-color: #1e3a5a; }
-
-        .btn-0 { transform: rotate(0deg) translateY(-110px) rotate(0deg); } 
-        .btn-1 { transform: rotate(51.4deg) translateY(-110px) rotate(-51.4deg); }
-        .btn-2 { transform: rotate(102.8deg) translateY(-110px) rotate(-102.8deg); }
-        .btn-3 { transform: rotate(154.2deg) translateY(-110px) rotate(-154.2deg); }
-        .btn-4 { transform: rotate(205.6deg) translateY(-110px) rotate(-205.6deg); }
-        .btn-5 { transform: rotate(257.0deg) translateY(-110px) rotate(-257.0deg); }
-        .btn-6 { transform: rotate(308.4deg) translateY(-110px) rotate(-308.4deg); }
+        .square-toggle { 
+            width: 40px; height: 40px; 
+            background: #222; border-radius: 8px; 
+            display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; transition: 0.3s; border: 2px solid #333;
+            color: #555; font-weight: bold;
+        }
+        .square-toggle.active { 
+            background: #007AFF; color: #fff; border-color: #007AFF; 
+        }
+        .switch-input { display: none; }
     </style>
 </head>
 <body>
 
-    <h1>Gerador de Notas</h1>
+<div id="keyboard"></div>
 
-    <div class="pitch-pipe-container">
-        <div class="center-circle">
-            <span id="display-note">C</span>
-            <span id="display-pt">Dó</span>
-            <span id="display-freq">261.63 Hz</span>
-        </div>
-        <div class="note-btn btn-0" id="btn-0" onclick="playCurrentNote(0)">C</div>
-        <div class="note-btn btn-1" id="btn-1" onclick="playCurrentNote(1)">D</div>
-        <div class="note-btn btn-2" id="btn-2" onclick="playCurrentNote(2)">E</div>
-        <div class="note-btn btn-3" id="btn-3" onclick="playCurrentNote(3)">F</div>
-        <div class="note-btn btn-4" id="btn-4" onclick="playCurrentNote(4)">G</div>
-        <div class="note-btn btn-5" id="btn-5" onclick="playCurrentNote(5)">A</div>
-        <div class="note-btn btn-6" id="btn-6" onclick="playCurrentNote(6)">B</div>
+<div id="controls">
+    <div class="toggle-wrapper">
+        <input type="checkbox" id="toggle-once" class="switch-input" onclick="setMode('once')">
+        <label for="toggle-once" id="label-once" class="square-toggle">1x</label>
+        Uma vez
     </div>
-
-    <div class="control-box no-border">
-        <div class="box-title">Modo de reprodução</div>
-        <div class="box-subtitle" id="mode-subtitle">A nota será tocada uma só vez.</div>
-        <div class="mode-selector">
-            <button class="mode-btn active" onclick="setMode('one-shot', this)">Única</button>
-            <button class="mode-btn" onclick="setMode('continuous', this)">Contínuo</button>
-            <button class="mode-btn" onclick="setMode('repetitive', this)">Repetitivo</button>
-        </div>
+    <div class="toggle-wrapper">
+        <input type="checkbox" id="toggle-infinite" class="switch-input" onclick="setMode('infinite')">
+        <label for="toggle-infinite" id="label-infinite" class="square-toggle">∞</label>
+        Indefinido
     </div>
+</div>
 
-    <div class="control-box">
-        <div class="box-title">Transpor escalas</div>
-        <div class="box-subtitle" id="scale-subtitle">Escala de C Maior (Dó Maior)</div>
-        <div class="transposition-container">
-            <div class="breadcrumb" id="breadcrumb"></div>
-            <div class="nav-row">
-                <button class="nav-btn-wide" onclick="adjustSelection(-1)">⬅</button>
-                <button class="nav-btn-wide" onclick="adjustSelection(1)">➡</button>
-            </div>
-        </div>
-    </div>
+<script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let mode = 'once';
+    let currentNote = null; 
 
-    <script>
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let currentMode = 'one-shot';
-        let activeOscillator = null;
-        let activeInterval = null;
-        let activeBtn = null;
+    function updateToggles() {
+        document.getElementById('toggle-once').checked = (mode === 'once');
+        document.getElementById('toggle-infinite').checked = (mode === 'infinite');
+        
+        document.getElementById('label-once').classList.toggle('active', mode === 'once');
+        document.getElementById('label-infinite').classList.toggle('active', mode === 'infinite');
+    }
 
-        const baseNotes = [
-            { name: "C", freq: 261.63, pt: "Dó" },
-            { name: "D", freq: 293.66, pt: "Ré" },
-            { name: "E", freq: 329.63, pt: "Mi" },
-            { name: "F", freq: 349.23, pt: "Fá" },
-            { name: "G", freq: 392.00, pt: "Sol" },
-            { name: "A", freq: 440.00, pt: "Lá" },
-            { name: "B", freq: 493.88, pt: "Si" }
-        ];
+    function setMode(m) {
+        stopAll();
+        mode = (mode === m) ? null : m;
+        if (!mode) mode = 'once';
+        updateToggles();
+    }
 
-        const visibleScalesIndices = [10, 11, 0, 1, 2];
-        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const ptNames = ["Dó", "Dó#", "Ré", "Ré#", "Mi", "Fá", "Fá#", "Sol", "Sol#", "Lá", "Lá#", "Si"];
+    function stopAll() {
+        if (currentNote) {
+            currentNote.osc.stop();
+            const el = document.getElementById('key-' + currentNote.name);
+            if (el) el.classList.remove('playing');
+            currentNote = null;
+        }
+    }
 
-        let activeNoteIndex = 0; 
-
-        function updateCircleDisplay(note, pt, freq) {
-            document.getElementById('display-note').innerText = note;
-            document.getElementById('display-pt').innerText = pt;
-            document.getElementById('display-freq').innerText = freq.toFixed(2) + " Hz";
+    function playNote(freq, noteName) {
+        if (!mode) { mode = 'once'; updateToggles(); }
+        
+        if (currentNote && currentNote.name === noteName) {
+            stopAll();
+            return;
         }
 
-        function renderBreadcrumb() {
-            const bc = document.getElementById('breadcrumb');
-            bc.innerHTML = '';
-            visibleScalesIndices.forEach(idx => {
-                let div = document.createElement('div');
-                div.className = 'crumb' + (idx === activeNoteIndex ? ' active' : '');
-                div.innerText = noteNames[idx];
-                div.onclick = () => selectNote(idx);
-                bc.appendChild(div);
-            });
-            document.getElementById('scale-subtitle').innerText = "Escala de " + noteNames[activeNoteIndex] + " Maior (" + ptNames[activeNoteIndex] + " Maior)";
+        stopAll();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start();
+
+        currentNote = { osc, gain, name: noteName };
+        document.getElementById('key-' + noteName).classList.add('playing');
+
+        if (mode === 'once') {
+            setTimeout(() => {
+                if (currentNote && currentNote.name === noteName) stopAll();
+            }, 1000);
         }
+    }
 
-        function selectNote(index) {
-            activeNoteIndex = index;
-            renderBreadcrumb();
-            const freq = baseNotes[0].freq * Math.pow(Math.pow(2, 1/12), activeNoteIndex);
-            updateCircleDisplay(noteNames[activeNoteIndex], ptNames[activeNoteIndex], freq);
-        }
+    const notes = [
+        { note: 'C2', freq: 65.41, type: 'white' }, { note: 'C#2', freq: 69.30, type: 'black' },
+        { note: 'D2', freq: 73.42, type: 'white' }, { note: 'D#2', freq: 77.78, type: 'black' },
+        { note: 'E2', freq: 82.41, type: 'white' }, { note: 'F2', freq: 87.31, type: 'white' },
+        { note: 'F#2', freq: 92.50, type: 'black' }, { note: 'G2', freq: 98.00, type: 'white' },
+        { note: 'G#2', freq: 103.83, type: 'black' }, { note: 'A2', freq: 110.00, type: 'white' },
+        { note: 'A#2', freq: 116.54, type: 'black' }, { note: 'B2', freq: 123.47, type: 'white' },
+        { note: 'C3', freq: 130.81, type: 'white' }, { note: 'C#3', freq: 138.59, type: 'black' },
+        { note: 'D3', freq: 146.83, type: 'white' }, { note: 'D#3', freq: 155.56, type: 'black' },
+        { note: 'E3', freq: 164.81, type: 'white' }, { note: 'F3', freq: 174.61, type: 'white' },
+        { note: 'F#3', freq: 185.00, type: 'black' }, { note: 'G3', freq: 196.00, type: 'white' },
+        { note: 'G#3', freq: 207.65, type: 'black' }, { note: 'A3', freq: 220.00, type: 'white' },
+        { note: 'A#3', freq: 233.08, type: 'black' }, { note: 'B3', freq: 246.94, type: 'white' }
+    ];
 
-        function adjustSelection(direction) {
-            let currentPos = visibleScalesIndices.indexOf(activeNoteIndex);
-            if (currentPos === -1) currentPos = 2; 
-            let newPos = currentPos + direction;
-            if (newPos >= 0 && newPos < visibleScalesIndices.length) {
-                selectNote(visibleScalesIndices[newPos]);
-            }
-        }
-
-        function getTransposedFreq(index) {
-            return baseNotes[index].freq * Math.pow(Math.pow(2, 1/12), activeNoteIndex);
-        }
-
-        function playCurrentNote(index) {
-            const freq = getTransposedFreq(index);
-            const noteName = baseNotes[index].name;
-            const ptName = baseNotes[index].pt;
-            const btn = document.getElementById('btn-' + index);
-            updateCircleDisplay(noteName, ptName, freq);
-            toggleNote(noteName, freq, btn, ptName);
-        }
-
-        function setMode(mode, btnElement) {
-            stopAllAudio();
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            btnElement.classList.add('active');
-            currentMode = mode;
-
-            const modeSubtitle = document.getElementById('mode-subtitle');
-            if (mode === 'one-shot') modeSubtitle.innerText = "A nota será tocada uma só vez.";
-            else if (mode === 'continuous') modeSubtitle.innerText = "A nota será tocada sem parar.";
-            else if (mode === 'repetitive') modeSubtitle.innerText = "A nota será tocada várias vezes.";
-        }
-
-        function stopAllAudio() {
-            if (activeOscillator) { activeOscillator.stop(); activeOscillator.disconnect(); activeOscillator = null; }
-            if (activeInterval) { clearInterval(activeInterval); activeInterval = null; }
-            if (activeBtn) { activeBtn.classList.remove('playing'); activeBtn = null; }
-        }
-
-        function toggleNote(note, freq, btnElement, ptName) {
-            if (activeBtn === btnElement) {
-                stopAllAudio();
-            } else {
-                stopAllAudio();
-                if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-
-                activeBtn = btnElement;
-                activeBtn.classList.add('playing');
-                if (currentMode === 'one-shot') {
-                    triggerTone(freq, 1.5, () => { if (activeBtn === btnElement) stopAllAudio(); });
-                } else if (currentMode === 'continuous') {
-                    triggerTone(freq, null, null);
-                } else if (currentMode === 'repetitive') {
-                    triggerTone(freq, 4.0, null);
-                    activeInterval = setInterval(() => { triggerTone(freq, 4.0, null); }, 2000);
-                }
-            }
-        }
-
-        function triggerTone(freq, duration, onComplete) {
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.type = 'sine';
-            oscillator.frequency.value = freq;
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
-            if (duration) {
-                gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-                oscillator.stop(audioCtx.currentTime + duration);
-                if (onComplete) { setTimeout(onComplete, duration * 1000); }
-            } else {
-                activeOscillator = oscillator;
-            }
-        }
-
-        renderBreadcrumb();
-    </script>
+    const keyboard = document.getElementById('keyboard');
+    notes.forEach(n => {
+        const key = document.createElement('div');
+        key.id = 'key-' + n.note;
+        key.className = `key ${n.type}`;
+        key.innerHTML = `<div class="label"><span class="note-name">${n.note.replace('#', '♯')}</span><span class="note-freq">${n.freq}</span></div>`;
+        key.onmousedown = () => playNote(n.freq, n.note);
+        keyboard.appendChild(key);
+    });
+    
+    updateToggles();
+</script>
 </body>
 </html>
