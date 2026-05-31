@@ -3,23 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Tom - Teclado Interativo</title>
+    <title>Detector de Tom - Premium UI Unificado</title>
     <style>
         :root {
-            --bg-color: #0f111a;
-            --panel-bg: #1a1d2d;
-            --accent-color: #00e6e6;
+            --bg-color: #0f1011;
+            --card-bg: #1a1b1e;
+            --card-border: #26282c;
+            --accent-color: #0073ff;
+            --danger-color: #ff4a4a;
+            
             --text-main: #ffffff;
-            --text-muted: #8b92a5;
-            --key-white: #e8e9f0;
-            --key-black: #121212;
+            --text-muted: #848995;
+            
+            --key-white: #e3e4e8;
+            --key-black: #2d2f35;
+            --key-black-active: #1e1f22;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -28,172 +33,199 @@
             color: var(--text-main);
             display: flex;
             justify-content: center;
+            align-items: center;
             height: 100vh;
             overflow: hidden;
             user-select: none;
+            padding: 15px;
         }
 
         .app-container {
             width: 100%;
-            max-width: 480px;
+            max-width: 460px;
             display: flex;
             flex-direction: column;
             height: 100%;
+            max-height: 800px;
             justify-content: space-between;
         }
 
-        /* --- TOP SECTION: DISPLAY --- */
-        .display-section {
-            text-align: center;
-            padding: 40px 20px 20px;
-            flex-grow: 1;
+        /* --- CARD SUPERIOR (DISPLAY & GRÁFICO) --- */
+        .main-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            gap: 15px;
         }
 
-        .main-note {
-            font-size: 5.5rem;
-            font-weight: 800;
-            color: var(--accent-color);
-            text-shadow: 0 0 20px rgba(0, 230, 230, 0.4);
-            letter-spacing: -2px;
-            transition: color 0.2s;
-        }
-
-        .octave-number {
-            font-size: 3rem;
-            color: var(--text-main);
-            vertical-align: super;
-            text-shadow: none;
-        }
-
-        .note-name {
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            font-weight: 400;
-            margin-bottom: 30px;
-            letter-spacing: 1px;
-            height: 1.5rem;
-        }
-
-        .info-grid {
+        .card-header {
             display: flex;
             justify-content: center;
+        }
+
+        .action-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 8px 32px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255, 74, 74, 0.3);
+            transition: opacity 0.2s;
+        }
+        
+        .action-btn.start-mode {
+            background-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(0, 115, 255, 0.3);
+        }
+
+        .action-btn:active { opacity: 0.8; }
+
+        .chart-area {
+            background-color: #090a0b;
+            border: 1px solid #222429;
+            border-radius: 8px;
+            height: 85px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
             align-items: center;
-            background: var(--panel-bg);
-            border-radius: 16px;
-            padding: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
-        .info-block {
+        .chart-line {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+            box-shadow: 0 0 8px var(--accent-color);
+            opacity: 0.7;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #141517;
+            border-radius: 12px;
+            padding: 12px 10px;
+            border: 1px solid #202226;
+        }
+
+        .data-block {
             flex: 1;
+            text-align: center;
             display: flex;
             flex-direction: column;
+            gap: 4px;
         }
 
-        .info-label {
-            font-size: 0.8rem;
+        .data-label {
+            font-size: 0.65rem;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-
-        .info-value {
-            font-size: 1.2rem;
             font-weight: 600;
         }
 
-        .divider {
-            width: 1px;
-            height: 40px;
-            background-color: #2c314a;
-            margin: 0 15px;
+        .data-value { font-size: 1.1rem; font-weight: 700; }
+
+        .data-block.center-accent .data-value-box {
+            background-color: white;
+            color: var(--accent-color);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            display: inline-block;
+            margin: 0 auto;
+            line-height: 1.2;
         }
 
-        /* --- MIDDLE SECTION: MIC BUTTON --- */
-        .mic-section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px 20px 30px;
+        .data-block.center-accent .data-sub {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #fff;
+            margin-top: 4px;
         }
 
-        .mic-button {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #161926, #1c1f30);
-            box-shadow: 10px 10px 20px #090a10, -10px -10px 20px #151824;
-            border: 2px solid #2c314a;
-            color: var(--text-main);
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        /* --- CARD INFERIOR (CONTROLES INTERNOS E TECLADO) --- */
+        .keyboard-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 18px 15px 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            line-height: 1.4;
+            gap: 15px;
         }
 
-        .mic-button:active {
-            box-shadow: inset 10px 10px 20px #090a10, inset -10px -10px 20px #151824;
-        }
-
-        .mic-button.listening {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 30px rgba(0, 230, 230, 0.2);
-            color: var(--accent-color);
-        }
-
-        /* --- BOTTOM SECTION: CONTROLS & KEYBOARD --- */
-        .keyboard-section {
-            background-color: var(--panel-bg);
-            border-top-left-radius: 24px;
-            border-top-right-radius: 24px;
-            padding-top: 15px;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
-        }
-
+        /* Área superior interna do teclado com os controles originais reestilizados */
         .octave-controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 30px 15px;
+            padding: 0 10px;
         }
 
         .arrow-btn {
-            background: transparent;
-            border: 1px solid #2c314a;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid #2c2e35;
             color: var(--text-main);
-            width: 50px;
-            height: 40px;
-            border-radius: 10px;
-            font-size: 1.5rem;
+            width: 46px;
+            height: 38px;
+            border-radius: 12px;
+            font-size: 1.3rem;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        .arrow-btn:active { background: #2c314a; }
-        .arrow-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .arrow-btn:active { background: #2c2e35; }
+        .arrow-btn:disabled { opacity: 0.1; cursor: not-allowed; }
 
-        .current-octave { text-align: center; }
-        .octave-val { font-size: 1.8rem; font-weight: bold; display: block; line-height: 1; }
-        .octave-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
+        .current-octave { 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .octave-val { font-size: 2rem; font-weight: 700; display: block; line-height: 1; color: #fff; }
+        
+        /* O Stepper de barras original */
+        .octave-stepper {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .step {
+            width: 12px;
+            height: 4px;
+            background-color: #2c2e35;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .step.active {
+            background-color: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-color);
+            width: 18px;
+        }
 
-        /* KEYBOARD CSS */
+        /* CORPO DO PIANO */
         .piano-wrapper {
             position: relative;
             display: flex;
             width: 100%;
-            height: 180px;
+            height: 170px;
+            background-color: #090a0b;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
         .key {
@@ -202,55 +234,60 @@
             justify-content: flex-end;
             align-items: center;
             cursor: pointer;
-            transition: background 0.1s;
+            text-align: center;
         }
 
-        .key-name { font-weight: 700; line-height: 1.2; }
-        .key-freq { font-size: 0.6rem; opacity: 0.7; margin-bottom: 2px; }
+        .key-name { font-weight: 600; line-height: 1; font-size: 0.65rem; }
+        .key-freq { font-size: 0.48rem; font-weight: 500; opacity: 0.4; margin-top: 2px; }
 
+        /* Teclas Brancas Premium */
         .white-key {
-            flex: 1;
+            width: 12.5%;
             background: var(--key-white);
-            color: var(--key-black);
-            border: 1px solid #111;
-            border-top: none;
-            border-bottom-left-radius: 6px;
-            border-bottom-right-radius: 6px;
-            box-shadow: inset 0 -4px 8px rgba(0,0,0,0.2);
-            z-index: 1;
-            padding-bottom: 10px;
-        }
-        
-        .white-key .key-name { font-size: 0.8rem; }
-
-        .white-key:active, .white-key.active { background: #cdd0da; }
-
-        .black-key {
-            position: absolute;
-            width: 9%;
-            height: 65%;
-            background: var(--key-black);
-            color: var(--key-white);
+            color: #555964;
+            border-right: 1px solid #141517;
+            padding-bottom: 12px;
             border-bottom-left-radius: 4px;
             border-bottom-right-radius: 4px;
-            box-shadow: inset 0 -5px 5px rgba(255,255,255,0.1), 3px 3px 6px rgba(0,0,0,0.4);
-            z-index: 2;
-            top: 0;
-            border: 1px solid #000;
-            padding-bottom: 8px;
+            z-index: 1;
+        }
+        .white-key:last-child { border-right: none; }
+        .white-key:active, .white-key.active { background: #c5c7cf; color: #111; }
+        
+        .white-key.side-half {
+            width: 6.25%;
+            background: var(--key-white);
+            cursor: default;
+            z-index: 1;
         }
 
-        .black-key .key-name { font-size: 0.65rem; }
-        .black-key .key-freq { font-size: 0.5rem; letter-spacing: -0.5px; }
+        /* Teclas Pretas Premium */
+        .black-key {
+            position: absolute;
+            width: 8.5%; 
+            height: 58%;
+            background: var(--key-black);
+            color: #9da3b4;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            z-index: 2;
+            top: 0;
+            border: 1px solid #1a1b1f;
+            padding-bottom: 10px;
+            overflow: hidden;
+        }
+        .black-key:active, .black-key.active { background: var(--key-black-active); color: #fff; }
 
-        .black-key:active, .black-key.active { background: #2a2a2a; }
-
-        /* Posições das teclas pretas */
-        .bk-1 { left: 9.78%; }  /* C# */
-        .bk-2 { left: 24.07%; } /* D# */
-        .bk-3 { left: 52.64%; } /* F# */
-        .bk-4 { left: 66.92%; } /* G# */
-        .bk-5 { left: 81.21%; } /* A# */
+        /* Posicionamento Anatômico nos vãos (idêntico ao anterior) */
+        .bk-1 { left: calc(6.25% - 4.25%); }
+        .bk-2 { left: calc(6.25% + 12.5% - 4.25%); }
+        .bk-3 { left: calc(6.25% + 25.0% - 4.25%); }
+        .bk-4 { left: calc(6.25% + 37.5% - 4.25%); }
+        .bk-5 { left: calc(6.25% + 50.0% - 4.25%); }
+        .bk-6 { left: calc(6.25% + 62.5% - 4.25%); }
+        .bk-7 { left: calc(6.25% + 75.0% - 4.25%); }
+        .bk-8 { left: calc(6.25% + 87.5% - 4.25%); }
 
     </style>
 </head>
@@ -258,38 +295,45 @@
 
     <div class="app-container">
         
-        <div class="display-section">
-            <div class="note-wrapper">
-                <span class="main-note" id="displayNote">--<span class="octave-number" id="displayOctave"></span></span>
+        <div class="main-card">
+            <div class="card-header">
+                <button class="action-btn" id="actionBtn">Pausar</button>
             </div>
-            <h2 class="note-name" id="displayFullName">Pronto para ouvir</h2>
             
-            <div class="info-grid">
-                <div class="info-block">
-                    <span class="info-label">Oitava</span>
-                    <span class="info-value" id="displayOctaveText">-</span>
+            <div class="chart-area">
+                <div class="chart-line"></div>
+            </div>
+            
+            <div class="data-row">
+                <div class="data-block">
+                    <span class="data-label">Nota</span>
+                    <span class="data-value" id="simpleNote">--</span>
                 </div>
-                <div class="divider"></div>
-                <div class="info-block">
-                    <span class="info-label">Frequência</span>
-                    <span class="info-value"><span id="displayFreqText">0.0</span> Hz</span>
+                
+                <div class="data-block center-accent">
+                    <div class="data-value-box" id="accentNote">--</div>
+                    <div class="data-sub" id="fullNameDisplay">Aguardando som</div>
+                </div>
+                
+                <div class="data-block">
+                    <span class="data-label">Frequência</span>
+                    <span class="data-value" id="freqDisplay">0.0 Hz</span>
                 </div>
             </div>
         </div>
 
-        <div class="mic-section">
-            <button class="mic-button" id="micBtn">
-                <span>Iniciar detecção</span>
-                <span>de tom</span>
-            </button>
-        </div>
-
-        <div class="keyboard-section">
+        <div class="keyboard-card">
+            
             <div class="octave-controls">
                 <button class="arrow-btn" id="prevBtn">&#8592;</button>
                 <div class="current-octave">
                     <span class="octave-val" id="controlOctave">2</span>
-                    <span class="octave-label">Oitava</span>
+                    <div class="octave-stepper" id="stepperContainer">
+                        <div class="step" data-step="2"></div>
+                        <div class="step" data-step="3"></div>
+                        <div class="step" data-step="4"></div>
+                        <div class="step" data-step="5"></div>
+                    </div>
                 </div>
                 <button class="arrow-btn" id="nextBtn">&#8594;</button>
             </div>
@@ -301,42 +345,44 @@
     </div>
 
     <script>
-        // Configuração de Áudio
         let audioCtx;
 
-        // Dados base das notas (Oitava 2 como referência inicial)
-        const notesData = [
-            { id: 0, name: 'C', fullName: 'Dó', type: 'white', baseFreq: 65.41 },
-            { id: 1, name: 'C#', fullName: 'Dó Sustenido', type: 'black', class: 'bk-1', baseFreq: 69.30 },
-            { id: 2, name: 'D', fullName: 'Ré', type: 'white', baseFreq: 73.42 },
-            { id: 3, name: 'D#', fullName: 'Ré Sustenido', type: 'black', class: 'bk-2', baseFreq: 77.78 },
-            { id: 4, name: 'E', fullName: 'Mi', type: 'white', baseFreq: 82.41 },
-            { id: 5, name: 'F', fullName: 'Fá', type: 'white', baseFreq: 87.31 },
-            { id: 6, name: 'F#', fullName: 'Fá Sustenido', type: 'black', class: 'bk-3', baseFreq: 92.50 },
-            { id: 7, name: 'G', fullName: 'Sol', type: 'white', baseFreq: 98.00 },
-            { id: 8, name: 'G#', fullName: 'Sol Sustenido', type: 'black', class: 'bk-4', baseFreq: 103.83 },
-            { id: 9, name: 'A', fullName: 'Lá', type: 'white', baseFreq: 110.00 },
-            { id: 10, name: 'A#', fullName: 'Lá Sustenido', type: 'black', class: 'bk-5', baseFreq: 116.54 },
-            { id: 11, name: 'B', fullName: 'Si', type: 'white', baseFreq: 123.47 }
+        const whiteNotes = [
+            { name: 'C', fullName: 'Dó', baseFreq: 65.41 },
+            { name: 'D', fullName: 'Ré', baseFreq: 73.42 },
+            { name: 'E', fullName: 'Mi', baseFreq: 82.41 },
+            { name: 'F', fullName: 'Fá', baseFreq: 87.31 },
+            { name: 'G', fullName: 'Sol', baseFreq: 98.00 },
+            { name: 'A', fullName: 'Lá', baseFreq: 110.00 },
+            { name: 'B', fullName: 'Si', baseFreq: 123.47 }
+        ];
+
+        const blackNotes = [
+            { name: 'B#', labelOffset: -1, fullName: 'Si Sustenido', class: 'bk-1', baseFreq: 61.74 },
+            { name: 'C#', labelOffset: 0, fullName: 'Dó Sustenido', class: 'bk-2', baseFreq: 69.30 },
+            { name: 'D#', labelOffset: 0, fullName: 'Ré Sustenido', class: 'bk-3', baseFreq: 77.78 },
+            { name: 'E#', labelOffset: 0, fullName: 'Mi Sustenido', class: 'bk-4', baseFreq: 87.31 },
+            { name: 'F#', labelOffset: 0, fullName: 'Fá Sustenido', class: 'bk-5', baseFreq: 92.50 },
+            { name: 'G#', labelOffset: 0, fullName: 'Sol Sustenido', class: 'bk-6', baseFreq: 103.83 },
+            { name: 'A#', labelOffset: 0, fullName: 'Lá Sustenido', class: 'bk-7', baseFreq: 116.54 },
+            { name: 'B#', labelOffset: 0, fullName: 'Si Sustenido', class: 'bk-8', baseFreq: 130.81 }
         ];
 
         let currentOctave = 2;
         const minOctave = 2;
         const maxOctave = 5;
 
-        // Elementos DOM
         const keyboardDiv = document.getElementById('keyboard');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
         const controlOctaveDisplay = document.getElementById('controlOctave');
         
-        // Elementos do Display Superior
-        const displayNote = document.getElementById('displayNote');
-        const displayFullName = document.getElementById('displayFullName');
-        const displayOctaveText = document.getElementById('displayOctaveText');
-        const displayFreqText = document.getElementById('displayFreqText');
+        // Elementos do Display
+        const simpleNote = document.getElementById('simpleNote');
+        const accentNote = document.getElementById('accentNote');
+        const fullNameDisplay = document.getElementById('fullNameDisplay');
+        const freqDisplay = document.getElementById('freqDisplay');
 
-        // Função para inicializar o áudio se necessário (exige interação do usuário)
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -346,85 +392,117 @@
             }
         }
 
-        // Sintetizador de Som
         function playTone(frequency) {
             initAudio();
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             
-            // Usando onda tipo 'triangle' para um som mais suave que 'sine' puro
             oscillator.type = 'triangle'; 
             oscillator.frequency.value = frequency;
             
-            // Envelope (Fade in rápido, Fade out gradual) para evitar estalos
             gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
             gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
             
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             
             oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 1.5);
+            oscillator.stop(audioCtx.currentTime + 1.2);
         }
 
-        // Calcular frequência exata baseada na oitava
         function getFrequency(baseFreq, octave) {
-            // Multiplica a frequência base por 2 elevado à diferença da oitava atual para a base(2)
             const multiplier = Math.pow(2, octave - 2);
             return (baseFreq * multiplier).toFixed(1);
         }
 
-        // Nome em extenso da oitava
-        function getOctaveName(octave) {
-            const names = { 2: "Segunda", 3: "Terceira", 4: "Quarta", 5: "Quinta" };
-            return names[octave] + " Oitava";
+        function updateStepper() {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach(step => {
+                if (parseInt(step.getAttribute('data-step')) === currentOctave) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
         }
 
-        // Renderizar o teclado dinamicamente
         function renderKeyboard() {
-            keyboardDiv.innerHTML = ''; // Limpar atual
+            keyboardDiv.innerHTML = ''; 
             
-            notesData.forEach(note => {
+            // 1. Lateral Esquerda (Meia Branca)
+            const leftHalf = document.createElement('div');
+            leftHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(leftHalf);
+
+            // 2. Brancas centrais
+            whiteNotes.forEach(note => {
                 const freq = getFrequency(note.baseFreq, currentOctave);
                 const keyDiv = document.createElement('div');
-                
-                keyDiv.className = `key ${note.type}-key ${note.class || ''}`;
+                keyDiv.className = 'key white-key';
                 keyDiv.innerHTML = `
                     <span class="key-name">${note.name}${currentOctave}</span>
-                    <span class="key-freq">${freq}</span>
+                    <span class="key-freq">${freq}Hz</span>
                 `;
 
-                // Eventos de Toque e Clique para emitir som e atualizar display
                 const triggerPlay = (e) => {
-                    e.preventDefault(); // Previne disparo duplo no mobile
+                    e.preventDefault();
                     playTone(freq);
-                    
-                    // Adiciona efeito visual na tecla
                     keyDiv.classList.add('active');
-                    setTimeout(() => keyDiv.classList.remove('active'), 200);
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
 
-                    // Atualiza o painel superior com a nota tocada
-                    displayNote.innerHTML = `${note.name}<span class="octave-number">${currentOctave}</span>`;
-                    displayFullName.innerText = note.fullName;
-                    displayOctaveText.innerText = getOctaveName(currentOctave);
-                    displayFreqText.innerText = freq;
+                    simpleNote.innerText = `${note.name}${currentOctave}`;
+                    accentNote.innerText = `${note.name}${currentOctave}`;
+                    fullNameDisplay.innerText = note.fullName;
+                    freqDisplay.innerText = `${freq} Hz`;
                 };
 
                 keyDiv.addEventListener('mousedown', triggerPlay);
                 keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                keyboardDiv.appendChild(keyDiv);
+            });
 
+            // 3. Lateral Direita (Meia Branca)
+            const rightHalf = document.createElement('div');
+            rightHalf.className = 'key white-key side-half';
+            keyboardDiv.appendChild(rightHalf);
+
+            // 4. Pretas sobrepostas nos vãos anatômicos
+            blackNotes.forEach((note) => {
+                const freq = getFrequency(note.baseFreq, currentOctave);
+                const keyDiv = document.createElement('div');
+                const calculatedLabelOctave = currentOctave + note.labelOffset;
+
+                keyDiv.className = `key black-key ${note.class}`;
+                keyDiv.innerHTML = `
+                    <span class="key-name">${note.name}${calculatedLabelOctave}</span>
+                    <span class="key-freq">${freq}Hz</span>
+                `;
+
+                const triggerPlay = (e) => {
+                    e.preventDefault();
+                    playTone(freq);
+                    keyDiv.classList.add('active');
+                    setTimeout(() => keyDiv.classList.remove('active'), 150);
+
+                    simpleNote.innerText = `${note.name}${calculatedLabelOctave}`;
+                    accentNote.innerText = `${note.name}${calculatedLabelOctave}`;
+                    fullNameDisplay.innerText = note.fullName;
+                    freqDisplay.innerText = `${freq} Hz`;
+                };
+
+                keyDiv.addEventListener('mousedown', triggerPlay);
+                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
                 keyboardDiv.appendChild(keyDiv);
             });
 
             controlOctaveDisplay.innerText = currentOctave;
+            updateStepper();
             
-            // Controle visual de desabilitar botões nos limites
             prevBtn.disabled = currentOctave <= minOctave;
             nextBtn.disabled = currentOctave >= maxOctave;
         }
 
-        // Lógica dos Botões de Oitava
         prevBtn.addEventListener('click', () => {
             if (currentOctave > minOctave) {
                 currentOctave--;
@@ -439,29 +517,24 @@
             }
         });
 
-        // Lógica visual do Botão de Microfone
-        const micBtn = document.getElementById('micBtn');
-        let isListening = false;
+        const actionBtn = document.getElementById('actionBtn');
+        let isRunning = true;
 
-        micBtn.addEventListener('click', () => {
-            isListening = !isListening;
-            initAudio(); // Exige interação para liberar som do navegador
-            
-            if (isListening) {
-                micBtn.classList.add('listening');
-                micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; margin-top: 5px;">Aguardando nota</span>`;
-                displayNote.innerHTML = `--`;
-                displayFullName.innerText = "Cante uma nota";
+        actionBtn.addEventListener('click', () => {
+            isRunning = !isRunning;
+            initAudio();
+            if (isRunning) {
+                actionBtn.classList.remove('start-mode');
+                actionBtn.innerText = 'Pausar';
+                fullNameDisplay.innerText = 'Aguardando som';
             } else {
-                micBtn.classList.remove('listening');
-                micBtn.innerHTML = `<span>Iniciar detecção</span><span>de tom</span>`;
-                displayFullName.innerText = "Pronto para ouvir";
+                actionBtn.classList.add('start-mode');
+                actionBtn.innerText = 'Iniciar';
+                fullNameDisplay.innerText = 'Detecção pausada';
             }
         });
 
-        // Inicializar Teclado
         renderKeyboard();
-
     </script>
 </body>
 </html>
