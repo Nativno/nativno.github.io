@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Tom - Versão Estável Mobile</title>
+    <title>Tom v2</title>
     <style>
         :root {
             --bg-color: #0f1011;
@@ -50,7 +50,6 @@
             justify-content: space-between;
         }
 
-        /* --- DISPLAY SUPERIOR --- */
         .display-section {
             padding: 10px 20px;
             display: flex;
@@ -115,7 +114,6 @@
             margin: 0 15px;
         }
 
-        /* --- BOTÃO CENTRAL E WAVEFORM --- */
         .mic-section {
             display: flex;
             justify-content: center;
@@ -190,7 +188,6 @@
             box-shadow: 0 0 20px rgba(0, 115, 255, 0.15), 10px 10px 25px #070809;
         }
 
-        /* --- CARD INFERIOR (TECLADO) --- */
         .keyboard-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -326,7 +323,6 @@
         let sourceNode = null;
         let isListening = false;
 
-        // Janela de amostragem aumentada para 4096 para conseguir enxergar ondas graves (C2 = 65Hz) sem atrasar
         const bufferSize = 4096; 
 
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -371,7 +367,6 @@
         const displayOctaveText = document.getElementById('displayOctaveText');
         const displayFreqText = document.getElementById('displayFreqText');
 
-        // Algoritmo otimizado de detecção de Pitch estável por autocorrelação direta limpa
         function complexPitchDetect(buffer, sampleRate) {
             let size = buffer.length;
             let rms = 0;
@@ -380,7 +375,7 @@
                 rms += buffer[i] * buffer[i];
             }
             rms = Math.sqrt(rms / size);
-            if (rms < 0.02) return -1; // Ignora ruídos de fundo fracos no celular
+            if (rms < 0.02) return -1; 
 
             let r1 = 0, r2 = size - 1, thres = 0.15;
             for (let i = 0; i < size / 2; i++) {
@@ -421,7 +416,6 @@
             return (freq > 40 && freq < 1200) ? freq : -1;
         }
 
-        // Sistema de filtro de estabilidade por votos (Impede a nota de pular loucamente na tela)
         let noteVotes = {};
         let totalVotesCollected = 0;
         let collectedFreqs = [];
@@ -444,7 +438,6 @@
             }
             totalVotesCollected++;
 
-            // Renderiza na tela rigidamente a cada 500ms (Aproximadamente 5 blocos de buffer de 4096 amostras a 44.1kHz)
             if (totalVotesCollected >= 5) {
                 let winnerKey = null;
                 let maxVotes = 0;
@@ -456,12 +449,11 @@
                     }
                 }
 
-                if (winnerKey && maxVotes >= 2) { // Exige pelo menos 2 confirmações idênticas
+                if (winnerKey && maxVotes >= 2) { 
                     let parts = winnerKey.split("|");
                     let noteName = parts[0];
                     let octave = parts[1];
 
-                    // Calcula a média das frequências válidas detectadas nesse ciclo
                     let avgFreq = collectedFreqs.reduce((a, b) => a + b, 0) / collectedFreqs.length;
 
                     displayNote.innerHTML = `${noteName}<span class="octave-number">${octave}</span>`;
@@ -470,7 +462,6 @@
                     displayFreqText.innerText = `${avgFreq.toFixed(1)} Hz`;
                 }
 
-                // Limpeza absoluta da memória do buffer para evitar efeito bola de neve no celular
                 noteVotes = {};
                 totalVotesCollected = 0;
                 collectedFreqs = [];
@@ -509,7 +500,6 @@
 
                     sourceNode = audioCtx.createMediaStreamSource(micStream);
                     
-                    // ScriptProcessor garante estabilidade de temporização nativa em navegadores móveis
                     scriptProcessor = audioCtx.createScriptProcessor(bufferSize, 1, 1);
                     scriptProcessor.onaudioprocess = processAudioBuffer;
 
@@ -528,7 +518,6 @@
 
         micBtn.addEventListener('click', toggleMic);
 
-        // --- SISTEMA DO TECLADO ---
         function playTone(frequency) {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
