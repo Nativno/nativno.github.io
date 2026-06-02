@@ -19,7 +19,9 @@
             --key-black: #2d2f35;
             --key-black-active: #1e1f22;
 
-            --btn-size: clamp(119px, 22vh, 170px);
+            /* Tamanhos dinâmicos do botão retangular */
+            --btn-width: clamp(200px, 55vw, 280px);
+            --btn-height: clamp(75px, 12vh, 90px);
         }
 
         * {
@@ -127,8 +129,8 @@
 
         .waveform-container {
             position: absolute;
-            width: var(--btn-size);
-            height: var(--btn-size);
+            width: var(--btn-width);
+            height: var(--btn-height);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -137,9 +139,9 @@
 
         .wave {
             position: absolute;
-            width: var(--btn-size);
-            height: var(--btn-size);
-            border-radius: 50%;
+            width: var(--btn-width);
+            height: var(--btn-height);
+            border-radius: 25px;
             border: 2px solid var(--accent-color);
             opacity: 0;
             transition: all 0.3s ease;
@@ -155,17 +157,17 @@
 
         @keyframes pulseWave {
             0% { transform: scale(1); opacity: 0.4; }
-            100% { transform: scale(1.88); opacity: 0; }
+            100% { transform: scaleX(1.3) scaleY(1.8); opacity: 0; }
         }
 
-        .circular-mic-btn {
-            width: var(--btn-size);
-            height: var(--btn-size);
-            border-radius: 50%;
+        .rect-mic-btn {
+            width: var(--btn-width);
+            height: var(--btn-height);
+            border-radius: 25px;
             background: linear-gradient(145deg, #1c1d22, #141517);
             border: 3px solid var(--card-border);
             color: var(--text-main);
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             display: flex;
@@ -173,19 +175,19 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 20px;
-            line-height: 1.4;
+            padding: 10px 20px;
+            line-height: 1.3;
             box-shadow: 10px 10px 25px #070809, -10px -10px 25px #212429;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 5;
         }
 
-        .circular-mic-btn:active {
+        .rect-mic-btn:active {
             transform: scale(0.96);
             box-shadow: inset 5px 5px 15px #070809, inset -5px -5px 15px #212429;
         }
 
-        .circular-mic-btn.listening {
+        .rect-mic-btn.listening {
             border-color: var(--accent-color);
             color: var(--accent-color);
             box-shadow: 0 0 20px rgba(0, 115, 255, 0.15), 10px 10px 25px #070809;
@@ -293,9 +295,9 @@
                 <div class="wave"></div>
                 <div class="wave"></div>
             </div>
-            <button class="circular-mic-btn" id="micBtn">
+            <button class="rect-mic-btn" id="micBtn">
                 <span>Iniciar detecção</span>
-                <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>
+                <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 2px;">de tom</span>
             </button>
         </div>
 
@@ -490,7 +492,7 @@
                 isListening = false;
                 micBtn.classList.remove('listening');
                 waveContainer.classList.remove('active');
-                micBtn.innerHTML = `<span>Iniciar detecção</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 4px;">de tom</span>`;
+                micBtn.innerHTML = `<span>Iniciar detecção</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.6; margin-top: 2px;">de tom</span>`;
                 
                 if (scriptProcessor) {
                     scriptProcessor.onaudioprocess = null;
@@ -509,7 +511,7 @@
                     isListening = true;
                     micBtn.classList.add('listening');
                     waveContainer.classList.add('active');
-                    micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-top: 4px;">Fale ou Cante</span>`;
+                    micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-top: 2px;">Fale ou Cante</span>`;
                     
                     if(audioCtx.state === 'suspended') await audioCtx.resume();
 
