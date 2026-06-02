@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tom v2</title>
+    <title>Tom V3</title>
     <style>
         :root {
             --bg-color: #0f1011;
@@ -18,6 +18,9 @@
             --key-white: #e3e4e8;
             --key-black: #2d2f35;
             --key-black-active: #1e1f22;
+
+            /* Tamanho dinâmico do botão: varia de 119px (-30%) até 170px dependendo da altura da tela */
+            --btn-size: clamp(119px, 22vh, 170px);
         }
 
         * {
@@ -59,15 +62,16 @@
         }
 
         .main-note {
-            font-size: 5.5rem;
+            font-size: clamp(2.75rem, 12vh, 5.5rem);
             font-weight: 800;
             color: #ffffff; 
             letter-spacing: -2px;
             line-height: 1.1;
+            transition: font-size 0.2s ease;
         }
 
         .octave-number {
-            font-size: 5.5rem; 
+            font-size: inherit; 
             color: #ffffff;
         }
 
@@ -124,8 +128,8 @@
 
         .waveform-container {
             position: absolute;
-            width: 320px;
-            height: 320px;
+            width: var(--btn-size);
+            height: var(--btn-size);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -134,8 +138,8 @@
 
         .wave {
             position: absolute;
-            width: 170px;
-            height: 170px;
+            width: var(--btn-size);
+            height: var(--btn-size);
             border-radius: 50%;
             border: 2px solid var(--accent-color);
             opacity: 0;
@@ -150,14 +154,15 @@
         .waveform-container.active .wave:nth-child(2) { animation-delay: 0.8s; }
         .waveform-container.active .wave:nth-child(3) { animation-delay: 1.6s; }
 
+        /* Animação atualizada para usar transform (scale) e manter proporção */
         @keyframes pulseWave {
-            0% { width: 170px; height: 170px; opacity: 0.4; }
-            100% { width: 320px; height: 320px; opacity: 0; }
+            0% { transform: scale(1); opacity: 0.4; }
+            100% { transform: scale(1.88); opacity: 0; }
         }
 
         .circular-mic-btn {
-            width: 170px;
-            height: 170px;
+            width: var(--btn-size);
+            height: var(--btn-size);
             border-radius: 50%;
             background: linear-gradient(145deg, #1c1d22, #141517);
             border: 3px solid var(--card-border);
@@ -595,7 +600,6 @@
             blackNotes.forEach((note) => {
                 const calculatedLabelOctave = currentOctave + note.labelOffset;
 
-                // Não renderiza a tecla se for B#-1, deixando o espaço vazio
                 if (note.name === 'B#' && calculatedLabelOctave === -1) {
                     return;
                 }
