@@ -19,7 +19,6 @@
             --key-black: #2d2f35;
             --key-black-active: #1e1f22;
 
-            /* Tamanho dinâmico do botão: varia de 119px (-30%) até 170px dependendo da altura da tela */
             --btn-size: clamp(119px, 22vh, 170px);
         }
 
@@ -40,7 +39,7 @@
             height: 100vh;
             overflow: hidden;
             user-select: none;
-            padding: 15px;
+            padding: 15px 15px 10vh 15px;
         }
 
         .app-container {
@@ -154,7 +153,6 @@
         .waveform-container.active .wave:nth-child(2) { animation-delay: 0.8s; }
         .waveform-container.active .wave:nth-child(3) { animation-delay: 1.6s; }
 
-        /* Animação atualizada para usar transform (scale) e manter proporção */
         @keyframes pulseWave {
             0% { transform: scale(1); opacity: 0.4; }
             100% { transform: scale(1.88); opacity: 0; }
