@@ -11,15 +11,11 @@
             --card-border: #26282c;
             --accent-color: #0073ff;
             --accent-glow: rgba(0, 115, 255, 0.2);
-            
             --text-main: #ffffff;
             --text-muted: #848995;
-            
             --key-white: #e3e4e8;
             --key-black: #2d2f35;
             --key-black-active: #1e1f22;
-
-            /* Tamanhos dinâmicos do botão retangular */
             --btn-width: clamp(200px, 55vw, 280px);
             --btn-height: clamp(75px, 12vh, 90px);
         }
@@ -55,7 +51,7 @@
         }
 
         .display-section {
-            padding: 10px 20px;
+            padding: 10px 20px 0px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -80,8 +76,57 @@
             font-size: 1.2rem;
             color: var(--text-main);
             font-weight: 500;
-            margin-bottom: 24px;
+            margin-bottom: 12px; 
             letter-spacing: 0.5px;
+        }
+
+        .compass-window {
+            width: 100%;
+            max-width: 320px;
+            height: 40px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 25%, #000 75%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0%, #000 25%, #000 75%, transparent 100%);
+        }
+
+        .compass-track {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            width: max-content;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .compass-item {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            width: 60px; 
+            text-align: center;
+            opacity: 0.3;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            white-space: nowrap;
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            flex-shrink: 0;
+        }
+
+        .compass-item.active {
+            font-size: 1.6rem;
+            color: var(--accent-color);
+            opacity: 1;
+            font-weight: 800;
+            text-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .compass-item-octave {
+            font-size: 0.6em;
+            opacity: 0.8;
+            margin-left: 1px;
+            font-weight: 500;
         }
 
         .info-grid {
@@ -89,7 +134,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px 0;
+            padding: 5px 0 10px;
         }
 
         .info-block {
@@ -244,6 +289,7 @@
             background-color: #090a0b;
             border-radius: 8px;
             overflow: hidden;
+            touch-action: none;
         }
 
         .key { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; text-align: center; }
@@ -276,6 +322,10 @@
             <div id="displayNote" class="main-note">--<span class="octave-number"></span></div>
             <div id="displayFullName" class="note-name">Aguardando áudio</div>
             
+            <div class="compass-window" id="compassWindow">
+                <div class="compass-track" id="compassTrack"></div>
+            </div>
+            
             <div class="info-grid">
                 <div class="info-block">
                     <span class="info-label">Oitava</span>
@@ -305,7 +355,7 @@
             <div class="octave-controls">
                 <button class="arrow-btn" id="prevBtn">&#8592;</button>
                 <div class="current-octave">
-                    <span class="octave-val" id="controlOctave">Oitava 4</span>
+                    <span class="octave-val" id="controlOctave">Oitava 3</span>
                     <div class="octave-stepper" id="stepperContainer">
                         <div class="step" data-step="0"></div>
                         <div class="step" data-step="1"></div>
@@ -344,11 +394,61 @@
         
         const octaveNames = ["Zero", "Primeira", "Segunda", "Terceira", "Quarta", "Quinta", "Sexta", "Sétima", "Oitava"];
 
+        const compassWindow = document.getElementById('compassWindow');
+        const compassTrack = document.getElementById('compassTrack');
+        const MIN_MIDI = 12; 
+        const MAX_MIDI = 119; 
+        let lastMidi = 48; 
+
         function getOctaveLabel(oct) {
             let o = parseInt(oct);
             if (o === 0) return "Oitava zero";
             return (octaveNames[o] || o) + " Oitava";
         }
+
+        function getNoteHTMLByMidi(midi) {
+            if (isNaN(midi)) return "-";
+            const octave = Math.floor(midi / 12) - 1;
+            const noteIndex = (midi % 12 + 12) % 12; 
+            return `${noteStrings[noteIndex]}<span class="compass-item-octave">${octave}</span>`;
+        }
+
+        function initCompass() {
+            compassTrack.innerHTML = '';
+            for (let i = MIN_MIDI; i <= MAX_MIDI; i++) {
+                const span = document.createElement('span');
+                span.className = 'compass-item';
+                span.id = 'compass-item-' + i;
+                span.innerHTML = getNoteHTMLByMidi(i);
+                compassTrack.appendChild(span);
+            }
+            updateCompassPosition(48);
+        }
+
+        function updateCompassPosition(midi) {
+            if (midi < MIN_MIDI || midi > MAX_MIDI) return;
+            lastMidi = midi;
+            const windowWidth = compassWindow.offsetWidth;
+            const itemWidth = 60;
+            const offset = (windowWidth / 2) - ((midi - MIN_MIDI) * itemWidth) - (itemWidth / 2);
+            compassTrack.style.transform = `translateX(${offset}px)`;
+        }
+
+        function updateCompass(midi) {
+            if (midi < MIN_MIDI || midi > MAX_MIDI) return;
+            document.querySelectorAll('.compass-item.active').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById('compass-item-' + midi);
+            if (activeEl) activeEl.classList.add('active');
+            updateCompassPosition(midi);
+        }
+
+        function resetCompass() {
+            document.querySelectorAll('.compass-item.active').forEach(el => el.classList.remove('active'));
+        }
+
+        window.addEventListener('resize', () => {
+            updateCompassPosition(lastMidi);
+        });
 
         const whiteNotes = [
             { name: 'C', fullName: 'Dó', baseFreq: 65.41 }, { name: 'D', fullName: 'Ré', baseFreq: 73.42 },
@@ -368,7 +468,7 @@
             { name: 'B#', labelOffset: 0, fullName: 'Si Sustenido', class: 'bk-8', baseFreq: 130.81 }
         ];
 
-        let currentOctave = 4;
+        let currentOctave = 3;
         const minOctave = 0;
         const maxOctave = 8;
 
@@ -444,32 +544,27 @@
             const frequency = complexPitchDetect(inputBuffer, audioCtx.sampleRate);
 
             if (frequency !== -1) {
-                let noteNum = 12 * (Math.log(frequency / 440) / Math.log(2)) + 69;
-                let roundedNote = Math.round(noteNum);
-                let noteIndex = (roundedNote % 12 + 12) % 12;
-                let octave = Math.floor(roundedNote / 12) - 1;
-                let keyKey = noteStrings[noteIndex] + "|" + octave;
-
-                noteVotes[keyKey] = (noteVotes[keyKey] || 0) + 1;
+                let roundedNote = Math.round(12 * (Math.log(frequency / 440) / Math.log(2)) + 69);
+                noteVotes[roundedNote] = (noteVotes[roundedNote] || 0) + 1;
                 collectedFreqs.push(frequency);
             }
             totalVotesCollected++;
 
             if (totalVotesCollected >= 5) {
-                let winnerKey = null;
+                let winnerMidi = null;
                 let maxVotes = 0;
 
                 for (let key in noteVotes) {
                     if (noteVotes[key] > maxVotes) {
                         maxVotes = noteVotes[key];
-                        winnerKey = key;
+                        winnerMidi = parseInt(key);
                     }
                 }
 
-                if (winnerKey && maxVotes >= 2) { 
-                    let parts = winnerKey.split("|");
-                    let noteName = parts[0];
-                    let octave = parts[1];
+                if (winnerMidi !== null && maxVotes >= 2) { 
+                    let noteIndex = (winnerMidi % 12 + 12) % 12;
+                    let octave = Math.floor(winnerMidi / 12) - 1;
+                    let noteName = noteStrings[noteIndex];
 
                     let avgFreq = collectedFreqs.reduce((a, b) => a + b, 0) / collectedFreqs.length;
 
@@ -477,6 +572,8 @@
                     displayFullName.innerText = noteFullNames[noteName];
                     displayOctaveText.innerText = getOctaveLabel(octave);
                     displayFreqText.innerText = `${avgFreq.toFixed(1)} Hz`;
+                    
+                    updateCompass(winnerMidi);
                 }
 
                 noteVotes = {};
@@ -505,13 +602,19 @@
                 displayFullName.innerText = "Detecção encerrada";
                 displayOctaveText.innerText = "-";
                 displayFreqText.innerText = "0.0 Hz";
+                resetCompass();
             } else {
                 try {
                     micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                     isListening = true;
                     micBtn.classList.add('listening');
                     waveContainer.classList.add('active');
-                    micBtn.innerHTML = `<span>Ouvindo...</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-top: 2px;">Fale ou Cante</span>`;
+                    
+                    micBtn.innerHTML = `
+                        <span>Ouvindo...</span>
+                        <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-top: 2px;">Fale ou cante</span>
+                        <span style="font-size: 0.65rem; font-weight: 700; color: #ffffff; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Toque para parar</span>
+                    `;
                     
                     if(audioCtx.state === 'suspended') await audioCtx.resume();
 
@@ -534,8 +637,8 @@
         }
 
         micBtn.addEventListener('click', toggleMic);
-
-        function playTone(frequency) {
+        
+        function startTone(frequency) {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
             
@@ -544,14 +647,43 @@
             
             oscillator.type = 'triangle'; 
             oscillator.frequency.value = frequency;
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            
+            const now = audioCtx.currentTime;
+            gainNode.gain.setValueAtTime(0, now);
+            
+            gainNode.gain.linearRampToValueAtTime(1, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
             
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 1.2);
+            
+            oscillator.start(now);
+            oscillator.stop(now + 4.5);
+            
+            return { gainNode, startTime: now };
+        }
+
+        function stopTone(toneData, holdTimeMs) {
+            if (!toneData) return;
+            
+            const now = audioCtx.currentTime;
+            const timeSinceStart = now - toneData.startTime;
+
+            if (holdTimeMs < 250) {
+                const gain = toneData.gainNode.gain;
+                
+                gain.cancelScheduledValues(now);
+                
+                let currentGain = gain.value;
+                if (currentGain < 0.001) currentGain = 0.001; 
+                
+                gain.setValueAtTime(currentGain, now);
+                
+                let timeRemaining = 3.0 - timeSinceStart;
+                if (timeRemaining < 0.1) timeRemaining = 0.1;
+                
+                gain.exponentialRampToValueAtTime(0.001, now + timeRemaining);
+            }
         }
 
         function getFrequency(baseFreq, octave) {
@@ -562,6 +694,55 @@
             document.querySelectorAll('.step').forEach(step => {
                 step.classList.toggle('active', parseInt(step.getAttribute('data-step')) === currentOctave);
             });
+        }
+
+        function bindKeyEvents(keyDiv, noteName, fullName, freq, labelOctave) {
+            let isPressed = false;
+            let pressStartTime = 0;
+            let activeTone = null;
+            
+            let midiNote = Math.round(12 * (Math.log(freq / 440) / Math.log(2)) + 69);
+
+            const handleStart = (e) => {
+                if (e.type === 'touchstart' || e.type === 'mousedown') {
+                    if (e.type === 'touchstart') e.preventDefault();
+                }
+                if (isPressed) return;
+                isPressed = true;
+                
+                pressStartTime = Date.now();
+                activeTone = startTone(freq);
+                keyDiv.classList.add('active');
+
+                displayNote.innerHTML = `${noteName}<span class="octave-number">${labelOctave}</span>`;
+                displayFullName.innerText = fullName;
+                displayOctaveText.innerText = getOctaveLabel(labelOctave);
+                displayFreqText.innerText = `${freq} Hz`;
+                
+                updateCompass(midiNote);
+            };
+
+            const handleEnd = (e) => {
+                if (e && (e.type === 'touchend' || e.type === 'touchcancel')) {
+                    e.preventDefault();
+                }
+                if (!isPressed) return;
+                isPressed = false;
+                
+                keyDiv.classList.remove('active');
+                
+                let holdTime = Date.now() - pressStartTime;
+                stopTone(activeTone, holdTime);
+                activeTone = null;
+            };
+
+            keyDiv.addEventListener('mousedown', handleStart);
+            keyDiv.addEventListener('touchstart', handleStart, { passive: false });
+            
+            keyDiv.addEventListener('mouseup', handleEnd);
+            keyDiv.addEventListener('mouseleave', handleEnd); 
+            keyDiv.addEventListener('touchend', handleEnd, { passive: false });
+            keyDiv.addEventListener('touchcancel', handleEnd, { passive: false });
         }
 
         function renderKeyboard() {
@@ -577,19 +758,7 @@
                 keyDiv.className = 'key white-key';
                 keyDiv.innerHTML = `<span class="key-name">${note.name}${currentOctave}</span><span class="key-freq">${freq}Hz</span>`;
 
-                const triggerPlay = (e) => {
-                    e.preventDefault();
-                    playTone(freq);
-                    keyDiv.classList.add('active');
-                    setTimeout(() => keyDiv.classList.remove('active'), 150);
-
-                    displayNote.innerHTML = `${note.name}<span class="octave-number">${currentOctave}</span>`;
-                    displayFullName.innerText = note.fullName;
-                    displayOctaveText.innerText = getOctaveLabel(currentOctave);
-                    displayFreqText.innerText = `${freq} Hz`;
-                };
-                keyDiv.addEventListener('mousedown', triggerPlay);
-                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                bindKeyEvents(keyDiv, note.name, note.fullName, freq, currentOctave);
                 keyboardDiv.appendChild(keyDiv);
             });
 
@@ -610,19 +779,7 @@
                 keyDiv.className = `key black-key ${note.class}`;
                 keyDiv.innerHTML = `<span class="key-name">${note.name}${calculatedLabelOctave}</span><span class="key-freq">${freq}Hz</span>`;
 
-                const triggerPlay = (e) => {
-                    e.preventDefault();
-                    playTone(freq);
-                    keyDiv.classList.add('active');
-                    setTimeout(() => keyDiv.classList.remove('active'), 150);
-
-                    displayNote.innerHTML = `${note.name}<span class="octave-number">${calculatedLabelOctave}</span>`;
-                    displayFullName.innerText = note.fullName;
-                    displayOctaveText.innerText = getOctaveLabel(calculatedLabelOctave);
-                    displayFreqText.innerText = `${freq} Hz`;
-                };
-                keyDiv.addEventListener('mousedown', triggerPlay);
-                keyDiv.addEventListener('touchstart', triggerPlay, { passive: false });
+                bindKeyEvents(keyDiv, note.name, note.fullName, freq, calculatedLabelOctave);
                 keyboardDiv.appendChild(keyDiv);
             });
 
@@ -636,6 +793,7 @@
         prevBtn.addEventListener('click', () => { if (currentOctave > minOctave) { currentOctave--; renderKeyboard(); } });
         nextBtn.addEventListener('click', () => { if (currentOctave < maxOctave) { currentOctave++; renderKeyboard(); } });
 
+        initCompass();
         renderKeyboard();
     </script>
 </body>
